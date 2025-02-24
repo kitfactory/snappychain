@@ -24,6 +24,8 @@ from .splitter import (
 from .wikipedia import wikipedia_to_text
 from .rag import build_rag_chain
 
+from .vectorstore import UnifiedVectorStore
+
 # RAGユーティリティ
 # from .rag import to_documents, rag_setup, rag_query, rag_add_documents
 
@@ -74,4 +76,7 @@ __all__ = [
 
     # rag.py functions
     'build_rag_chain',
+
+    # vectorstore.py functions
+    'UnifiedVectorStore',
 ]

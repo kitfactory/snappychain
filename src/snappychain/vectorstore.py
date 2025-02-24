@@ -151,6 +151,27 @@ class UnifiedVectorStore():
         """
         return self.vector_store.similarity_search(query, k=k)
 
+    def as_retriever(self, **kwargs):
+        """
+        Convert the vector store to a retriever.
+        ベクトルストアをリトリーバーに変換します。
+
+        Args:
+            **kwargs: Additional arguments to pass to the underlying vector store's as_retriever method.
+                     内部のベクトルストアのas_retrieverメソッドに渡す追加の引数。
+
+        Returns:
+            BaseRetriever: A retriever instance that can be used for document retrieval.
+                          文書検索に使用できるリトリーバーインスタンス。
+
+        Raises:
+            ValueError: If the vector store is not initialized.
+                       ベクトルストアが初期化されていない場合に発生します。
+        """
+        if not hasattr(self, 'vector_store'):
+            raise ValueError("Vector store is not initialized")
+        return self.vector_store.as_retriever(**kwargs)
+
 
 def faiss_vectorstore(persist_dir: Optional[str] = None) -> RunnableLambda:
     """

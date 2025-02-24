@@ -18,6 +18,24 @@ import os
 
 logger = Logger.get_logger(__name__)
 
+"""
+{
+    "embeddings": {
+        "provider": "openai"|"ollama"
+        "model": "model/name"
+    },
+    "vector_store": {
+        "provider": "FAISS"|"Chroma",
+        "save_dir": "path/to/persist/dir"
+    },
+    "llm": {
+        "provider": "openai"|"ollama",
+        "model": "model/name",
+        "temperature": 0.2
+    }
+}
+"""
+
 class Rag():
     """
     RAG that combines vector store retrieval with LLM for enhanced responses.
