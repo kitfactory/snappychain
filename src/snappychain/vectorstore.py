@@ -25,7 +25,7 @@ def faiss_vectorstore(persist_dir: Optional[str] = None) -> RunnableLambda:
 
         # Get embeddings model from session
         # セッションからembeddingsモデルを取得
-        embeddings = data.get("_session", {}).get("model")
+        embeddings = data.get("_session", {}).get("embedding_model")
         if not embeddings:
             raise ValueError("No embeddings model found in session data. Please run openai_embedding_model() or ollama_embedding_model() first.")
 
@@ -72,7 +72,7 @@ def chroma_vectorstore(persist_dir: Optional[str] = None) -> RunnableLambda:
 
         # Get embeddings model from session
         # セッションからembeddingsモデルを取得
-        embeddings = data.get("_session", {}).get("model")
+        embeddings = data.get("_session", {}).get("embedding_model")
         if not embeddings:
             raise ValueError("No embeddings model found in session data. Please run openai_embedding_model() or ollama_embedding_model() first.")
 

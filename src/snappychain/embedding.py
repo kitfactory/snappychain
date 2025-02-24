@@ -17,7 +17,7 @@ def openai_embedding() -> RunnableLambda:
     def inner(data):
         if "_session" not in data:
             data["_session"] = {}
-        data["_session"]["model"] = OpenAIEmbeddings()
+        data["_session"]["embedding_model"] = OpenAIEmbeddings()
         return data
     return RunnableLambda(inner)
 
@@ -38,7 +38,7 @@ def ollama_embedding(model_name: str = "llama2") -> RunnableLambda:
     def inner(data):
         if "_session" not in data:
             data["_session"] = {}
-        data["_session"]["model"] = OllamaEmbeddings(model=model_name)
+        data["_session"]["embedding_model"] = OllamaEmbeddings(model=model_name)
         return data
     return RunnableLambda(inner)
 
