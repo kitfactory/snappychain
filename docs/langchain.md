@@ -28,7 +28,41 @@
 * VectorStore
 
 
-* RetrivalQA
+# RAG
+* RetrivalQAがある。
+
+
+* ただ、RagChain.run()
+
+```
+RagConfig = {
+    "embeddings": {
+        "provider":"OpenAI",
+        "model":"text-embedding-ada-002"
+    }
+    "vector_store": {
+        "provider":"FAISS",
+        "settings":{
+            "persist_dir":"dir_of_persist"
+        }
+    },
+    "document_loader":{
+        "provider":"Dri"
+    },
+    "llm":{
+        "provider":"OpenAI",
+        "model":"gpt-4o"
+    },
+    "bm25":{
+        "settings":{
+            "persist_dir":"bm25"
+        },
+    },
+    "rerank":{
+        "provider":"llm", # llm / cohere
+        "model":"gpt-4o"
+    }
+}
 
 
 

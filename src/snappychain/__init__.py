@@ -4,7 +4,16 @@ from .schema import schema
 from .devmode import dev
 from .output import output
 from .embedding import add_documents_to_vector_store, persist_vector_store, query_vector_store, openai_embedding, ollama_embedding
-from .loader import text_load, pypdf_load, markitdown_load
+
+from .loader import (
+    text_load,
+    pypdf_load,
+    markitdown_load,
+    get_chain_documents,
+    directory_load,
+    unstructured_markdown_load,
+)
+
 from .splitter import (
     split_text,
     recursive_split_text,
@@ -12,6 +21,7 @@ from .splitter import (
     python_text_splitter,
     json_text_splitter
 )
+from .wikipedia import wikipedia_to_text
 
 __all__ = [
     # chat.py functions
@@ -35,6 +45,9 @@ __all__ = [
     'text_load',
     'pypdf_load',
     'markitdown_load',
+    'get_chain_documents',
+    'directory_load',
+    'unstructured_markdown_load',
 
     # splitters.py functions
     'split_text',
@@ -43,10 +56,21 @@ __all__ = [
     'python_text_splitter',
     'json_text_splitter',
 
-    # embedding.py functions
+    # vectorstore.py functions
     'add_documents_to_vector_store',
     'persist_vector_store',
     'query_vector_store',
+    
+    # embedding.py functions
     'openai_embedding',
-    'ollama_embedding'
+    'ollama_embedding',
+
+    # wikipedia.py functions
+    'wikipedia_to_text'
+
+    # rag utilities
+    # 'to_documents',
+    # 'rag_setup',
+    # 'rag_query',
+    # 'rag_add_documents',
 ]
