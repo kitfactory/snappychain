@@ -22,6 +22,10 @@ from .splitter import (
     json_text_splitter
 )
 from .wikipedia import wikipedia_to_text
+from .rag import build_rag_chain
+
+# RAGユーティリティ
+# from .rag import to_documents, rag_setup, rag_query, rag_add_documents
 
 __all__ = [
     # chat.py functions
@@ -66,11 +70,8 @@ __all__ = [
     'ollama_embedding',
 
     # wikipedia.py functions
-    'wikipedia_to_text'
+    'wikipedia_to_text',
 
-    # rag utilities
-    # 'to_documents',
-    # 'rag_setup',
-    # 'rag_query',
-    # 'rag_add_documents',
+    # rag.py functions
+    'build_rag_chain',
 ]

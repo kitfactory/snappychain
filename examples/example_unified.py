@@ -1,13 +1,24 @@
-"""
-Vector store operations module.
-ベクトルストア操作モジュール。
-"""
-
-from typing import Optional, List
-from langchain.embeddings.base import Embeddings
+from langchain_core.embeddings import Embeddings
 from langchain_community.vectorstores import FAISS, Chroma
-from langchain_core.runnables import RunnableLambda
-import os
+from langchain_openai import OpenAIEmbeddings
+
+from snappychain import (
+    directory_load,
+    recursive_split_text,
+    get_chain_documents
+)
+
+# faissの場合の設定
+settings = {
+    "provider": "faiss",
+    "save_dir": "examples/vectorstores/faiss",
+}
+
+# chromaの場合の設定
+settings = {
+    "provider": "chroma",
+    "save_dir": "examples/vectorstores/chroma",
+}
 
 class UnifiedVectorStore():
     """
@@ -91,7 +102,7 @@ class UnifiedVectorStore():
         """
         self.save_to = self.settings.get("save_dir", None)
         if self.save_to is None:
-            raise ValueError("save_dir is required in FAISS settings")
+            raise ValueError("save_to is required in FAISS settings")
 
         import os
         if self.save_to and not os.path.exists(self.save_to):
@@ -107,6 +118,8 @@ class UnifiedVectorStore():
         This method initializes a new Chroma instance or loads an existing one.
         このメソッドは、新規のChromaインスタンスを初期化するか、既存のものをロードします。
         """
+        from langchain_community.vectorstores import Chroma
+        
         self.save_to = self.settings.get("save_dir", None)
         if self.save_to is None:
             raise ValueError("save_dir is required in Chroma settings")
@@ -133,7 +146,7 @@ class UnifiedVectorStore():
             self.vector_store.save_local(self.settings.get("save_dir"))
         elif self.provider == "chroma":
             self.vector_store.persist()
-    
+
     def similarity_search(self, query, k=1):
         """
         Perform a similarity search on the vector store.
@@ -152,35 +165,72 @@ class UnifiedVectorStore():
         return self.vector_store.similarity_search(query, k=k)
 
 
-def faiss_vectorstore(persist_dir: Optional[str] = None) -> RunnableLambda:
-    """
-    Create/load FAISS vector store and add documents.
-    FAISSベクトルストアを作成/ロードし、ドキュメントを追加します。
+if __name__ == "__main__":
+    import shutil
+    import os
 
-    Args:
-        persist_dir (Optional[str]): Directory to save/load the vector store.
-                                    ベクトルストアを保存/ロードするディレクトリ。
+    # FAISSのテスト
+    print("\nTesting FAISS vector store...")
+    print("--------------------------------")
+    
+    directory = "examples/vectorstores/faiss"
+    if os.path.exists(directory):
+        print("Removing", directory)
+        shutil.rmtree(directory)
 
-    Returns:
-        RunnableLambda: A runnable that creates or loads a FAISS vector store.
-                       FAISSベクトルストアを作成またはロードするRunnable。
-    """
-    def _faiss_vectorstore(data):
-        docs = data.get("documents", [])
-        embeddings = data.get("embeddings", None)
-        
-        if embeddings is None:
-            raise ValueError("embeddings is required")
-            
-        settings = {
+    uv_faiss = UnifiedVectorStore(
+        settings={
             "provider": "faiss",
-            "save_dir": persist_dir
-        }
-        
-        vector_store = UnifiedVectorStore(settings=settings, embeddings=embeddings)
-        if docs:
-            vector_store.add_documents(docs)
-            
-        return vector_store
-        
-    return RunnableLambda(_faiss_vectorstore)
+            "save_dir": "examples/vectorstores/faiss",
+        },
+        embeddings=OpenAIEmbeddings(
+            model="text-embedding-ada-002"
+        )        
+    )
+
+    # Chromaのテスト
+    print("\nTesting Chroma vector store...")
+    print("--------------------------------")
+    
+    directory = "examples/vectorstores/chroma"
+    if os.path.exists(directory):
+        print("Removing", directory)
+        shutil.rmtree(directory)
+
+    uv_chroma = UnifiedVectorStore(
+        settings={
+            "provider": "chroma",
+            "save_dir": "examples/vectorstores/chroma",
+        },
+        embeddings=OpenAIEmbeddings(
+            model="text-embedding-ada-002"
+        )        
+    )
+
+    # ドキュメントの読み込みと分割
+    loader_chain = directory_load(
+        directory_path="examples/documents/trees",
+        show_progress=True
+    ) | recursive_split_text(
+        chunk_size=1000,
+        chunk_overlap=200
+    ) | get_chain_documents()
+
+    documents = loader_chain.invoke({})
+    print("\nDocuments loaded:", len(documents))
+
+    # FAISSへの保存とテスト
+    print("\nTesting FAISS storage and search...")
+    uv_faiss.add_documents(documents)
+    result = uv_faiss.similarity_search("ヤマボウシはいつ頃咲きますか？", k=3)
+    print("FAISS Results:", len(result))
+    for r in result:
+        print(r)
+
+    # Chromaへの保存とテスト
+    print("\nTesting Chroma storage and search...")
+    uv_chroma.add_documents(documents)
+    result = uv_chroma.similarity_search("アオダモの花は何色？", k=1)
+    print("Chroma Results:", len(result))
+    for r in result:
+        print(r)

@@ -151,15 +151,15 @@ def recursive_split_text(
         RunnableLambda: A lambda that splits documents and updates data["_session"]["documents"]
                         ドキュメントを分割し、data["_session"]["documents"]を更新するラムダ
     """
+    # Default separators if none provided
+    # デフォルトの区切り文字（指定がない場合）
+    if separators is None:
+        separators = ["\n\n", "\n", " ", ""]
+
     def inner(data):
         docs = data.get("_session", {}).get("documents", [])
         if not docs:
             return data
-
-        # Default separators if none provided
-        # デフォルトの区切り文字（指定がない場合）
-        if separators is None:
-            separators = ["\n\n", "\n", " ", ""]
 
         text_splitter = RecursiveCharacterTextSplitter(
             separators=separators,
@@ -170,8 +170,15 @@ def recursive_split_text(
 
         split_docs = []
         for doc in docs:
-            split_docs.extend(text_splitter.split_documents([doc]))
+            chunks = text_splitter.split_text(doc.page_content)
+            for chunk in chunks:
+                split_doc = Document(
+                    page_content=chunk,
+                    metadata=doc.metadata
+                )
+                split_docs.append(split_doc)
 
         data["_session"]["documents"] = split_docs
         return data
+
     return RunnableLambda(inner)

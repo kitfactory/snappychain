@@ -29,15 +29,16 @@
 
 
 # RAG
-* RetrivalQAがある。
+* RetrivalQAがあるが、準備が必要
+* 
 
 
 * ただ、RagChain.run()
 
 ```
-RagConfig = {
+config = {
     "embeddings": {
-        "provider":"OpenAI",
+        "provider":"openai",
         "model":"text-embedding-ada-002"
     }
     "vector_store": {
@@ -46,11 +47,8 @@ RagConfig = {
             "persist_dir":"dir_of_persist"
         }
     },
-    "document_loader":{
-        "provider":"Dri"
-    },
     "llm":{
-        "provider":"OpenAI",
+        "provider":"openai",
         "model":"gpt-4o"
     },
     "bm25":{
@@ -61,8 +59,40 @@ RagConfig = {
     "rerank":{
         "provider":"llm", # llm / cohere
         "model":"gpt-4o"
-    }
+    },
 }
+
+rag.pyでの提供メソッドは以下を提供する。
+
+・build_rag_chain(config)
+・rag_chain.store_documents()
+・rag_chain.query()
+
+
+```サンプル
+documents = directory_load().to_documents()
+config = {
+    "embeddings": {
+        "provider":"openai",
+        "model":"text-embedding-ada-002"
+    }
+    "vector_store": {
+        "provider":"FAISS",
+        "settings":{
+            "persist_dir":"dir_of_persist"
+        }
+    },
+    "llm":{
+        "provider":"openai",
+        "model":"gpt-4o"
+    },
+}
+
+rag = build_rag_chain(config)
+rag = rag.store_documents(documents)
+rag.query("query")
+```
+
 
 
 

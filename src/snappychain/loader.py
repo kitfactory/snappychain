@@ -1,16 +1,13 @@
-from langchain.document_loaders import TextLoader  # Import LangChain's TextLoader // LangChainのTextLoaderをインポートします
-from typing import List, Optional, Dict  # Import List type // List型をインポートします
-from langchain_core.runnables import RunnableLambda  # Import RunnableLambda // RunnableLambdaをインポートします
-from langchain.document_loaders import PyPDFLoader
-from langchain.schema import Document
-from langchain.document_loaders import (
+from langchain_core.runnables import RunnableLambda
+from langchain_community.document_loaders import (
     TextLoader,
     PyPDFLoader,
     DirectoryLoader,
     UnstructuredMarkdownLoader
 )
-from onelogger import Logger
+from typing import Optional, List
 import os
+from onelogger import Logger
 
 logger = Logger.get_logger(__name__)
 
