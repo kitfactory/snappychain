@@ -59,7 +59,7 @@ def output(type: str = "text") -> RunnableLambda:
         if "structured_response" in session:
             structured_response = session["structured_response"]
             if data.get("_dev") == True:
-                logger.debug("\033[32mReturning structured response: %s\033[0m", structured_response)
+                logger.debug("\033[33mReturning structured response: %s\033[0m", structured_response)
             return structured_response
         
         # 通常の応答処理
@@ -67,7 +67,7 @@ def output(type: str = "text") -> RunnableLambda:
         response = session["response"]
         parsed_response = parser.invoke(response)
         if data.get("_dev") == True:
-            logger.debug("\033[32mOutput: %s\033[0m", parsed_response)
+            logger.debug("\033[33mOutput: %s\033[0m", parsed_response)
         return parsed_response
     
     return RunnableLambda(inner)

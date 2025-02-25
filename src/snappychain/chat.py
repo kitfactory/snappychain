@@ -83,14 +83,14 @@ def _chat(data:dict , model) -> dict:
     template = _get_template(data)
     template_replaced = template.invoke(data)
 
-    # 開発モードの時はログ表示「
+    # 開発モードの時はログ表示
     if data.get("_dev", False) == True:
         logger.debug("\033[32mLLM Request:%s\033[0m", template_replaced)
 
     # LLMに確認する
     response = model.invoke(template_replaced)
     if data.get("_dev", False) == True:
-        logger.debug("\033[32mResponse:%s\033[0m", response)
+        logger.debug("\033[33mResponse:%s\033[0m", response)
     
     # 構造化出力のパースを試みる
     # Try to parse structured output
@@ -99,9 +99,9 @@ def _chat(data:dict , model) -> dict:
             parsed_response = parser.parse(response.content)
             session["structured_response"] = parsed_response
             if data.get("_dev", False) == True:
-                logger.debug("\033[32mStructured Response:%s\033[0m", parsed_response)
+                logger.debug("\033[33mStructured Response:%s\033[0m", parsed_response)
         except Exception as e:
-            logger.warning("\033[33mFailed to parse structured response: %s\033[0m", str(e))
+            logger.warning("\033[31mFailed to parse structured response: %s\033[0m", str(e))
             # パースに失敗した場合でも元の応答は保存
             # Store the original response even if parsing fails
             

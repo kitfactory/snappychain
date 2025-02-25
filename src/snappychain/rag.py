@@ -201,6 +201,10 @@ class Rag():
             raise ValueError("QA chain not initialized. Call store_documents first. / QAチェーンが初期化されていません。先にstore_documentsを呼び出してください。")
 
         try:
+            # ベクトルストアから検索結果を取得
+            results = self.vector_store.similarity_search(question)
+            logger.debug("\033[34mVector search results: %s\033[0m", [doc.page_content for doc in results])
+            
             return self.qa_chain.invoke(question)
         except Exception as e:
             logger.error("\033[31mError querying RAG: %s\033[0m", str(e))

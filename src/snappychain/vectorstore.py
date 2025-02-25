@@ -8,6 +8,9 @@ from langchain.embeddings.base import Embeddings
 from langchain_community.vectorstores import FAISS, Chroma
 from langchain_core.runnables import RunnableLambda
 import os
+from onelogger import Logger
+
+logger = Logger.get_logger(__name__)
 
 class UnifiedVectorStore():
     """
@@ -73,7 +76,7 @@ class UnifiedVectorStore():
         Load an existing FAISS vector store from the save directory.
         保存ディレクトリから既存のFAISSベクトルストアを読み込みます。
         """
-        print("Loading FAISS from", self.save_to)
+        logger.info("\033[34mLoading FAISS from %s\033[0m", self.save_to)
         self.vector_store = FAISS.load_local(
             folder_path=self.settings.get("save_dir"),
             embeddings=self.embeddings,
@@ -149,7 +152,10 @@ class UnifiedVectorStore():
             list: A list of matching documents.
                   一致したドキュメントのリスト。
         """
-        return self.vector_store.similarity_search(query, k=k)
+        results = self.vector_store.similarity_search(query, k=k)
+        logger.debug("\033[34mVector search results: %s\033[0m", 
+                    [f"{i+1}. {doc.page_content[:50]}..." for i, doc in enumerate(results)])
+        return results
 
     def as_retriever(self, **kwargs):
         """

@@ -187,6 +187,10 @@ class UnifiedRerank:
                 # Get top N documents
                 reranked_docs = [documents[idx] for idx in valid_rankings[:self._top_n]]
                 
+                # Rerank結果をログに出力
+                logger.debug("\033[34mRerank results: %s\033[0m", 
+                            [f"Doc {idx}: {documents[idx].page_content[:50]}..." for idx in valid_rankings[:self._top_n]])
+                
                 # ランキングに含まれていない残りのドキュメントを追加（もし結果が少なすぎる場合）
                 # Add remaining documents not included in rankings (if results are too few)
                 if len(reranked_docs) < self._top_n:
