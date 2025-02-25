@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "bm25s-j>=0.1.1",
     "chromadb>=0.6.3",
     "langchain>=0.3.19",
     "langchain-anthropic>=0.3.7",

@@ -25,6 +25,8 @@ from .wikipedia import wikipedia_to_text
 from .rag import build_rag_chain
 
 from .vectorstore import UnifiedVectorStore
+from .rerank import UnifiedRerank
+from .bm25sj import BM25SJRetriever, bm25sj, bm25sj_query
 
 # RAGユーティリティ
 # from .rag import to_documents, rag_setup, rag_query, rag_add_documents
@@ -79,4 +81,12 @@ __all__ = [
 
     # vectorstore.py functions
     'UnifiedVectorStore',
+
+    # rerank.py functions
+    'UnifiedRerank',
+
+    # bm25sj.py functions
+    'BM25SJRetriever',
+    'bm25sj',
+    'bm25sj_query',
 ]
