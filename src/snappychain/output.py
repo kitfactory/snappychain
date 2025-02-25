@@ -53,9 +53,21 @@ def output(type: str = "text") -> RunnableLambda:
     # 応答辞書の 'response' キーの文字列を解析し、その結果を 'output' キーに格納する内部関数。
     def inner(data):
         session = data["_session"]
+        
+        # structured_responseが存在する場合はそれを返す
+        # If structured_response exists, return it
+        if "structured_response" in session:
+            structured_response = session["structured_response"]
+            if data.get("_dev") == True:
+                logger.debug("\033[32mReturning structured response: %s\033[0m", structured_response)
+            return structured_response
+        
+        # 通常の応答処理
+        # Normal response processing
         response = session["response"]
         parsed_response = parser.invoke(response)
         if data.get("_dev") == True:
             logger.debug("\033[32mOutput: %s\033[0m", parsed_response)
         return parsed_response
+    
     return RunnableLambda(inner)

@@ -23,6 +23,8 @@
 # RAGに必要な要素
 
 * DocumentLoader
+    * 文書を読み出し。拡張子に応じて。
+
 * DocumentSplitter
 * Embeddings
 * VectorStore
@@ -58,7 +60,7 @@ config = {
     },
     "rerank":{
         "provider":"llm", # llm / cohere
-        "model":"gpt-4o"
+        "model":"gpt-4o",
     },
 }
 

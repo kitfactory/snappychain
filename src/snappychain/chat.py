@@ -3,6 +3,8 @@ from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate, AIMessagePromptTemplate
+from langchain.output_parsers.structured import StructuredOutputParser
+from langchain_core.output_parsers import StrOutputParser
 
 
 from onelogger import Logger
@@ -39,6 +41,45 @@ def _get_template(data: dict) -> ChatPromptTemplate:
 def _chat(data:dict , model) -> dict:
     session = data["_session"]
     session["model"] = model
+    
+    # スキーマが指定されている場合、構造化出力用のパーサーを設定
+    # If schema is specified, set up parser for structured output
+    schemas = session.get("schema", [])
+    if schemas:
+        try:
+            # 構造化出力用のパーサーを作成
+            # Create parser for structured output
+            parser = StructuredOutputParser.from_response_schemas(schemas)
+            
+            # パーサーのフォーマット手順を取得
+            # Get formatting instructions from the parser
+            format_instructions = parser.get_format_instructions()
+            
+            # 中括弧をエスケープ（二重中括弧にする）
+            # Escape curly braces by doubling them
+            format_instructions = format_instructions.replace("{", "{{").replace("}", "}}")
+            
+            # フォーマット手順をデータに追加
+            # Add formatting instructions to data
+            if "format_instructions" not in data:
+                data["format_instructions"] = format_instructions
+                
+            # システムプロンプトに構造化出力の指示を追加
+            # Add instructions for structured output to the system prompt
+            for i, prompt in enumerate(session.get("prompt", [])):
+                if "system" in prompt:
+                    session["prompt"][i]["system"] += "\n\n" + format_instructions
+                    break
+            else:
+                # システムプロンプトがない場合は最初に追加
+                # If no system prompt exists, add it as the first one
+                session["prompt"].insert(0, {"system": format_instructions})
+            
+            if data.get("_dev", False) == True:
+                logger.debug("\033[32mAdded format instructions: %s\033[0m", format_instructions)
+        except Exception as e:
+            logger.error("\033[31mError setting up structured output: %s\033[0m", str(e))
+    
     template = _get_template(data)
     template_replaced = template.invoke(data)
 
@@ -46,11 +87,24 @@ def _chat(data:dict , model) -> dict:
     if data.get("_dev", False) == True:
         logger.debug("\033[32mLLM Request:%s\033[0m", template_replaced)
 
-
     # LLMに確認する
     response = model.invoke(template_replaced)
     if data.get("_dev", False) == True:
-        logger.debug("\033[Response:%s\033[0m", response)
+        logger.debug("\033[32mResponse:%s\033[0m", response)
+    
+    # 構造化出力のパースを試みる
+    # Try to parse structured output
+    if schemas:
+        try:
+            parsed_response = parser.parse(response.content)
+            session["structured_response"] = parsed_response
+            if data.get("_dev", False) == True:
+                logger.debug("\033[32mStructured Response:%s\033[0m", parsed_response)
+        except Exception as e:
+            logger.warning("\033[33mFailed to parse structured response: %s\033[0m", str(e))
+            # パースに失敗した場合でも元の応答は保存
+            # Store the original response even if parsing fails
+            
     session["response"] = response
     return data
 
