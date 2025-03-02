@@ -10,7 +10,8 @@ SnappyChainの何よりの特徴は、まずは直感的・簡単にLangChainの
 
 __従来のLangChain__
 
-以下は、LangChainを使用したLCELでのシステムプロンプトとユーザープロンプトを設定し、文字列を取り出す例です。LCELによって、| でチェインを繋ぐまでが、冗長になりがちです。またインポート場所も変わったりするので、追従が大変です。
+以下は、LangChainを使用したLCELでのシステムプロンプトとユーザープロンプトを設定し、文字列を取り出す例です。LCELによって、| でチェインを繋ぐことができます。
+
 
 ```python
 from langchain_openai import ChatOpenAI
@@ -48,9 +49,9 @@ __SnappyChainの場合__
 ```python
 from snappychain import system_prompt, human_prompt, openai_chat , output
 chain = (
-    system_prompt("あなたは知識豊富なアシスタントです。簡潔かつ正確に回答してください。") 
-    | human_prompt("{question}") 
-    | openai_chat(model="gpt-4", temperature=0.7) 
+    system_prompt("あなたは知識豊富なアシスタントです。簡潔かつ正確に回答してください")  \
+    | human_prompt("{question}")  \
+    | openai_chat(model="gpt-4", temperature=0.7)  \
     | output()
 )
 
@@ -63,11 +64,14 @@ response = chain.invoke(user)
 
 ### 特徴2.開発モード
 
-開発モード dev()という関数を設けています。dev関数をチェインの冒頭で呼ぶことで関数はデバッグログを色分けをしながら、ログ表示をします。なので、どういった受け答えをしているかを見えやすくします。このログにはoneloggerを使っています。
+開発モード dev()という関数を設けています。dev関数をチェインの冒頭で呼ぶことで関数はデバッグログを色分けをしながら、ログ表示をします。なので、どういった受け答えをしているかを見えやすくします。このログには[onelogger](http://t6^:/)を使っています。
 
 ```python
 dev()
-  | system_prompt("あなたは、")
+  | system_prompt("あなたは有能なアシスタントです。")　\
+  | user_prompt("{question}") \
+  | openai_chat("gpt-4o-mini") \
+  | output()
 ....
 ```
 
@@ -183,3 +187,5 @@ openai_chat()  # 利用可能
 SnappyChainは、データ処理を簡単にし、作業効率を向上させるために設計されています。使いやすいインターフェースとカスタマイズ可能な出力により、ユーザーは自分のニーズに合わせてツールを調整できます。
 
 ## LangChain Splitter
+
+

@@ -59,7 +59,8 @@ config = {
         },
     },
     "rerank":{
-        "provider":"llm", # llm / cohere
+        "rerank":"llm", # llm / 
+        "provider": "openai",
         "model":"gpt-4o",
     },
 }
@@ -96,8 +97,6 @@ rag.query("query")
 ```
 
 
-
-
 # LangGraph
 
 基本的にはGraphに以下の操作を行う
@@ -114,7 +113,7 @@ SnappyGraph.node(").conditional_edge({
 
 SnappyGraph({
     nodes:
-        tool_node(),
+        tool_node(,
     edges:
         conditonal_edge(),
 })
@@ -128,3 +127,17 @@ SnappyGraph({
 ・Rerank結果：青
 ・VectorStoreサーチ結果：青
 ・検証結果：正常　青/異常赤（これはまだない、今後）
+
+
+# LangChain prebuild agent
+
+* KnowledgeAgent:
+    * Knowledge
+    * RAGChain
+    * LLMChain
+
+* Knowledge
+    * add_knowledge()
+    * search_knowledge()
+    * memory()
+

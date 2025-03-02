@@ -108,7 +108,7 @@ def _chat(data:dict , model) -> dict:
     session["response"] = response
     return data
 
-def openai_chat(model="gpt-4o-mini", templature=0.2) -> RunnableLambda:
+def openai_chat(model="gpt-4o-mini", temperature=0.2) -> RunnableLambda:
     """
     Create a runnable lambda that generates a response using the OpenAI chat model following LangChain LCEL.
     LangChain LCELに沿ってOpenAIチャットモデルを使用し、応答を生成する実行可能なlambdaを返します。
@@ -128,7 +128,7 @@ def openai_chat(model="gpt-4o-mini", templature=0.2) -> RunnableLambda:
             dict: 応答が追加されたデータ辞書 / Data dictionary with the chat response appended.
         """
         # OpenAIチャットモデルを初期化（例としてgpt-3.5-turboとtemperature=0を使用）
-        llm = ChatOpenAI(model_name=model, temperature=templature)
+        llm = ChatOpenAI(model_name=model, temperature=temperature)
         return _chat(data, llm)
 
     return RunnableLambda(inner)

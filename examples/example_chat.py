@@ -21,7 +21,7 @@ def main():
                 "description": "山の標高(m)"
             }
         ])\
-        | openai_chat(model="gpt-4o-mini", templature=0.2) \
+        | openai_chat(model="gpt-4o-mini", temperature=0.2) \
         | output()
     
     result = chain.invoke({"question":"富士山について教えて"})

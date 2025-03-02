@@ -16,6 +16,7 @@ dependencies = [
     "langchain-openai>=0.3.6",
     "markitdown>=0.0.1a4",
     "onelogger>=0.1.2",
+    "py2neo>=2021.2.4",
     "pypdf>=5.3.0",
 ]
 

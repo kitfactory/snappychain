@@ -4,6 +4,7 @@ from .schema import schema
 from .devmode import dev
 from .output import output
 from .embedding import add_documents_to_vector_store, persist_vector_store, query_vector_store, openai_embedding, ollama_embedding
+from .epistemize import epistemize
 
 from .loader import (
     text_load,
@@ -89,4 +90,7 @@ __all__ = [
     'BM25SJRetriever',
     'bm25sj',
     'bm25sj_query',
+
+    # epistemize.py functions
+    'epistemize',
 ]
