@@ -14,6 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 from snappychain.schema import schema
 from snappychain.chat import openai_chat
 from snappychain.output import output
+from langchain.globals import set_debug
 
 def example_text_classification():
     """
@@ -21,6 +22,10 @@ def example_text_classification():
     スキーマを使用したテキスト分類の例。
     """
     print("\n=== テキスト分類の例 / Text Classification Example ===")
+    
+    # デバッグモードを有効化
+    # Enable debug mode
+    set_debug(True)
     
     # テキスト分類のスキーマを定義
     # Define schema for text classification
@@ -66,9 +71,8 @@ def example_text_classification():
                     "human": f"Please classify the following text: {text}"
                 }
             ]
-        },
-        "_dev": True
-    })
+        }
+    }, verbose=True)
     
     # 結果を表示
     # Display result
@@ -82,6 +86,10 @@ def example_sentiment_analysis():
     スキーマを使用した感情分析の例。
     """
     print("\n=== 感情分析の例 / Sentiment Analysis Example ===")
+    
+    # デバッグモードを有効化
+    # Enable debug mode
+    set_debug(True)
     
     # 感情分析のスキーマを定義
     # Define schema for sentiment analysis
@@ -127,9 +135,8 @@ def example_sentiment_analysis():
                     "human": f"Please analyze the sentiment of the following text: {text}"
                 }
             ]
-        },
-        "_dev": True
-    })
+        }
+    }, verbose=True)
     
     # 結果を表示
     # Display result
@@ -143,6 +150,10 @@ def example_entity_extraction():
     スキーマを使用したエンティティ抽出の例。
     """
     print("\n=== エンティティ抽出の例 / Entity Extraction Example ===")
+    
+    # デバッグモードを有効化
+    # Enable debug mode
+    set_debug(True)
     
     # エンティティ抽出のスキーマを定義
     # Define schema for entity extraction
@@ -193,9 +204,8 @@ def example_entity_extraction():
                     "human": f"Please extract entities from the following text: {text}"
                 }
             ]
-        },
-        "_dev": True
-    })
+        }
+    }, verbose=True)
     
     # 結果を表示
     # Display result
@@ -212,4 +222,4 @@ if __name__ == "__main__":
     example_sentiment_analysis()
     example_entity_extraction()
     
-    print("\n=== 全ての例が完了しました / All examples completed ===") 
+    print("\n=== 全ての例が完了しました / All examples completed ===")
