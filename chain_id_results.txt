@@ -1,0 +1,44 @@
+
+============================================================
+=== get_xxx関数を使用する例 / Example of using get_xxx functions ===
+============================================================
+
+------------------------------------------------------------
+明示的にIDを指定 / Specify ID explicitly: c8ed7ce7
+------------------------------------------------------------
+chain1.chain_id: c8ed7ce7
+
+チェイン1を実行 / Execute chain 1:
+foo_chain が実行されました / foo_chain executed
+bar_chain が実行されました / bar_chain executed
+
+------------------------------------------------------------
+自動的にIDを生成 / Generate ID automatically:
+------------------------------------------------------------
+chain2.chain_id: 43e4017b
+
+チェイン2を実行 / Execute chain 2:
+foo_chain が実行されました / foo_chain executed
+baz_chain が実行されました / baz_chain executed
+
+============================================================
+=== 同じIDを持つチェインの例 / Example of chains with the same ID ===
+============================================================
+
+------------------------------------------------------------
+同じIDを共有 / Share the same ID: a622ea8b
+------------------------------------------------------------
+chain3.chain_id: a622ea8b
+chain4.chain_id: a622ea8b
+
+チェイン3を実行 / Execute chain 3:
+foo_chain が実行されました / foo_chain executed
+bar_chain が実行されました / bar_chain executed
+
+チェイン4を実行 / Execute chain 4:
+foo_chain が実行されました / foo_chain executed
+baz_chain が実行されました / baz_chain executed
+
+============================================================
+=== 終了 / End ===
+============================================================

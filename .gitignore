@@ -9,7 +9,6 @@ wheels/
 examples/documents/
 examples/vectorstores/
 
-
 # Virtual environments
 .venv
 .python-version

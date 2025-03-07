@@ -3,13 +3,16 @@ Example of using directory_load to load documents from a directory.
 ディレクトリからドキュメントを読み込むdirectory_loadの使用例。
 """
 
-from snappychain import directory_load
+from snappychain import directory_load, set_debug
 
 def main():
+    # デバッグモードを有効化
+    # Enable debug mode
+    set_debug(True)
+    
     # Initialize data dictionary
     # データ辞書を初期化
     data = {
-        "_dev": True,  # Enable development mode for detailed logging
         "_session": {
             "documents": []
         }
@@ -25,7 +28,7 @@ def main():
 
     # Load the documents
     # ドキュメントを読み込み
-    result = loader.invoke(data)
+    result = loader.invoke(data, verbose=True)
 
     # Print information about loaded documents
     # 読み込んだドキュメントの情報を表示

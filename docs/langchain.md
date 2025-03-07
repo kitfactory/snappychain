@@ -141,3 +141,11 @@ SnappyGraph({
     * search_knowledge()
     * memory()
 
+
+# 関数一覧
+
+set_verbose(True) やchain.invoke(xxxx, verbose=True)で出力を詳細にするとのこと。
+
+lambda で*args, **kwargsを受け取る必要があったり、verboseを確認する必要がある。
+
+初期については

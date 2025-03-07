@@ -3,12 +3,15 @@ Example of using RAG with document loading and querying.
 RAGを使用したドキュメントの読み込みと質問応答の例。
 """
 
-from snappychain import directory_load, build_rag_chain, recursive_split_text
+from snappychain import directory_load, build_rag_chain, recursive_split_text, set_debug
 
 def main():
+    # デバッグモードを有効化
+    # Enable debug mode
+    set_debug(True)
+
     # Initialize data dictionary
     data = {
-        "_dev": True,  
         "_session": {
             "documents": []
         }
@@ -25,7 +28,7 @@ def main():
         chunk_overlap=200
     )
 
-    result = loader_chain.invoke(data)
+    result = loader_chain.invoke(data, verbose=True)
     documents = result["_session"]["documents"]
 
     # Configure RAG

@@ -1,4 +1,4 @@
-from snappychain import system_prompt, human_prompt, openai_chat, epistemize, output, dev
+from snappychain import system_prompt, human_prompt, openai_chat, epistemize, output, set_debug
 from oneenv import load_dotenv
 import traceback
 import json
@@ -21,8 +21,9 @@ def main():
         logging.debug("ステップ1: モジュールのインポート確認")
         
         logging.debug("ステップ2: チャットチェインの作成")
-        chat_chain = dev() \
-            | system_prompt("あなたは有能なAIアシスタントです。専門用語を使って詳しく説明してください。") \
+        # デバッグモードを有効化
+        set_debug(True)
+        chat_chain = system_prompt("あなたは有能なAIアシスタントです。専門用語を使って詳しく説明してください。") \
             | human_prompt("{question}") \
             | openai_chat(model="gpt-4o-mini", temperature=0.2)
         
@@ -30,7 +31,7 @@ def main():
         knowledge_chain = chat_chain | epistemize() | output()
         
         logging.debug("ステップ4: チェインの実行")
-        result = knowledge_chain.invoke({"question": "量子コンピュータの基本原理と応用について教えてください", "_dev": True})
+        result = knowledge_chain.invoke({"question": "量子コンピュータの基本原理と応用について教えてください"}, verbose=True)
         
         logging.debug("ステップ5: 結果の構造を確認")
         logging.debug(f"result型: {type(result)}")

@@ -3,29 +3,26 @@
 Async processing test script
 """
 
+import logging
 import sys
 import time
-import logging
-from pathlib import Path
+import json
+from snappychain import epistemize, set_debug
+from oneenv import load_dotenv
 
 # ロギングの設定
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('test_async_epistemize.log', mode='w')
+        logging.StreamHandler(sys.stdout)
     ]
 )
 
 logger = logging.getLogger(__name__)
 
-# プロジェクトのルートディレクトリをPYTHONPATHに追加
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-# snappychainモジュールをインポート
-from snappychain.epistemize import Episteme, epistemize
+# 環境変数の読み込み
+load_dotenv()
 
 def test_async_epistemize():
     """
@@ -33,6 +30,9 @@ def test_async_epistemize():
     epistemize関数の非同期処理をテストします。
     """
     logger.info("非同期処理テスト開始")
+    
+    # デバッグモードを有効化
+    set_debug(True)
     
     # テスト用のデータを作成
     test_data = {
@@ -46,14 +46,13 @@ def test_async_epistemize():
                 量子コンピュータの応用分野としては、暗号解読、材料設計、機械学習、最適化問題などが挙げられます。
                 """
             }
-        },
-        "_dev": True
+        }
     }
     
     # epistemize関数を実行
     logger.info("epistemize関数を実行中...")
     epistemize_fn = epistemize(model="gpt-4o-mini", temperature=0.2)
-    result = epistemize_fn.invoke(test_data)
+    result = epistemize_fn.invoke(test_data, verbose=True)
     
     # 初期状態を確認
     logger.info("初期状態（非同期処理開始直後）:")

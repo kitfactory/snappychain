@@ -1,3 +1,4 @@
+from langchain_core.runnables.base import RunnableLambda
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -14,13 +15,31 @@ prompt = ChatPromptTemplate.from_messages([
 # 出力パーサー
 output_parser = StrOutputParser()
 
+# カスタム・チェイン
+def custom_chain(*args, **kwargs):
+    print(kwargs)
+    if args and kwargs:
+        print("args & kwargs")
+        return args, kwargs
+    elif args:
+        print("args")
+        return args
+    elif kwargs:
+        print("kwargs")
+        return kwargs
+    return None
+
 # LCEL を利用して、プロンプト → LLM → 出力パース の流れを構築
-chain = prompt  | llm | output_parser
+chain = RunnableLambda(lambda *args, **kwargs: (print("Input:", args, kwargs), custom_chain(*args, **kwargs))[1]) | prompt | llm | output_parser | RunnableLambda(lambda *args, **kwargs: (print("Output:", args, kwargs), custom_chain(*args, **kwargs))[1])
 
 # ユーザーの入力
 user_input = {"question": "量子コンピュータとは何ですか？"}
 
 # 実行
-response = chain.invoke(user_input)
+response = chain.invoke(user_input, verbose=True)
 
 print(response)
+
+
+# 技術スタディ
+# 1. 各関数は*args, **kwargsを受け取り、返却

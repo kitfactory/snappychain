@@ -15,7 +15,11 @@ import concurrent.futures
 from oneenv import oneenv, load_dotenv
 
 # snappychainのモジュールをインポート
-from snappychain import system_prompt, human_prompt, openai_chat, schema, output, dev
+from .prompt import system_prompt, human_prompt
+from .chat import openai_chat
+from .schema import schema
+from .output import output
+from .devmode import validate as dev
 
 logger = Logger.get_logger(__name__)
 

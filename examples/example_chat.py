@@ -2,14 +2,17 @@ from snappychain import system_prompt, human_prompt
 from snappychain import openai_chat, output, dev, schema
 from oneenv import load_dotenv
 
+from langchain.globals import set_verbose
+
 load_dotenv()
+
+set_verbose(True)
 
 # メイン関数
 # Main function
 def main():
 
-    chain = dev() \
-        | system_prompt("あなたは有能なアシスタントです。") \
+    chain = system_prompt("あなたは有能なアシスタントです。") \
         | human_prompt("{question}") \
         | schema([
             {
