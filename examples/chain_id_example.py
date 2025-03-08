@@ -8,8 +8,7 @@ import os
 
 # プロジェクトのルートディレクトリをパスに追加
 # Add project root directory to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+# 
 # snappychainパッケージからチェインID関連の機能をインポート
 # Import chain ID related functions from snappychain package
 from snappychain import (

@@ -6,7 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTempla
 from langchain.output_parsers.structured import StructuredOutputParser
 from langchain_core.output_parsers import StrOutputParser
 
-from .verbose import debug_print, debug_request, debug_response, debug_error, Color, is_verbose
+from .print import debug_print, debug_request, debug_response, debug_error, Color, is_verbose
 from .registry import registry
 
 def _get_template(data: dict) -> ChatPromptTemplate:
