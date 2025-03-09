@@ -100,7 +100,31 @@ chain = (
     | user("こんにちは！元気？")
     | openai()
 )
+
+# 実行
+result = chain.invoke(verbose=True)
 ```
+
+### 追跡
+LangChainには追跡機能が組み込まれています。
+set_verbose(True)やchain.invoke(verbose=True)で出力を詳細にすることができます。
+また、set_debug(True)でより詳細な出力を得ることができます。
+
+Verbose出力では下記のように着色され、追跡しやすくなります。
+
+|出力| 内容| 色 |
+|---|---|---|
+|プロンプト|LLMに入力する最終的なプロンプト文字列|YELLOW|
+|出力|LLMからの返答や出力|GREEN|
+|Rerank|Rerankの結果|MAZENTA|
+|Retriever|VectorSearchなど各Retriver結果|CYAN|
+|エラー|エラー|赤色|
+
+デバッグ出力
+　通常出力：指定なし
+
+
+
 
 ### dataオブジェクトに保持する
 

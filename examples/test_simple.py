@@ -1,13 +1,13 @@
+"""
+シンプルなテストスクリプト
+Simple test script
+"""
+
 from snappychain import system_prompt, human_prompt
 from snappychain import openai_chat, output
-from snappychain import schema
 from oneenv import load_dotenv
 
-from langchain.globals import set_verbose
-
 load_dotenv()
-
-set_verbose(True)
 
 # メイン関数
 # Main function
@@ -16,25 +16,23 @@ def main():
     # Create a chain
     chain = system_prompt("あなたは有能なアシスタントです。") \
         | human_prompt("{question}") \
-        | schema([
-            {
-                "name":"場所",
-                "description": "山の場所"
-            },
-            {
-                "name":"標高",
-                "description": "山の標高(m)"
-            }
-        ])\
         | openai_chat(model="gpt-4o-mini", temperature=0.2) \
         | output()
     
     # 基本的な呼び出し
     # Basic call
-    result = chain.invoke({"question":"富士山について教えて"})
+    result = chain.invoke({"question":"こんにちは、元気ですか？"})
     
     print("応答結果 / Response result:")
     print(result)
+    
+    # kwargsを使用した呼び出し
+    # Call with kwargs
+    print("\nkwargsを使用した呼び出し / Call with kwargs:")
+    result2 = chain.invoke({"question":"今日の天気は？", "additional_info": "追加情報"}, verbose=True)
+    
+    print("応答結果2 / Response result 2:")
+    print(result2)
 
 if __name__ == "__main__":
     main()

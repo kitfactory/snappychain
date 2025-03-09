@@ -106,27 +106,31 @@ rag.query("query")
 ・conditional_edge : 条件判定
 ・ToolNode:外部を呼び出すノード
 
-SnappyGraph.node(").conditional_edge({
-    "condition":"state",
-})
+
+# ログの塗分け-Verbose
+print.py
+
+デバッグ出力
+　通常出力：指定なし
+
+Verbose出力
+　LLMに入力する最終的なプロンプト文字列：YELLOW
+　LLMからの返答や出力：GREEN
+　Rerank：MAZENTA
+　VectorSearchなど各Retriver結果：CYAN
+　エラー：赤色
 
 
-SnappyGraph({
-    nodes:
-        tool_node(,
-    edges:
-        conditonal_edge(),
-})
-
-# ログの塗分け
-
-・通常出力：指定なし（現在色）
-・エラー：赤色
-・リクエスト・入力：緑色
-・返答や出力：橙色
-・Rerank結果：青
-・VectorStoreサーチ結果：青
-・検証結果：正常　青/異常赤（これはまだない、今後）
+    RESET = "\033[0m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 # LangChain prebuild agent

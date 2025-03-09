@@ -185,7 +185,65 @@ class Chain(RunnableLambda):
         Returns:
             str: 文字列表現 / String representation
         """
-        return f"Chain(chain_id={self.chain_id}, step_index={self.step_index}, func={self.func.__name__})"
+        return f"Chain(chain_id={self.chain_id}, step_index={self.step_index})"
+
+    def invoke(self, input, *args, **kwargs):
+        """
+        チェインを実行する
+        Execute the chain
+        
+        Args:
+            input: 入力データ / Input data
+            *args: 可変長位置引数 / Variable length positional arguments
+            **kwargs: キーワード引数 / Keyword arguments
+            
+        Returns:
+            Any: チェインの実行結果 / Chain execution result
+        """
+        # 入力がNoneの場合は空の辞書を使用
+        # Use empty dictionary if input is None
+        if input is None:
+            input = {}
+            
+        # 入力が辞書でない場合は、辞書に変換
+        # Convert input to dictionary if it is not a dictionary
+        if not isinstance(input, dict):
+            input = {"input": input}
+            
+        # セッションを初期化
+        # Initialize session
+        if "_session" not in input:
+            input["_session"] = {}
+            
+        # チェインIDとステップインデックスをセッションに保存
+        # Save chain ID and step index to session
+        session = input["_session"]
+        session["chain"] = self
+        
+        # argsとkwargsをセッションに保存
+        # Save args and kwargs to session
+        if args:
+            session["args"] = args
+            
+        # 既存のkwargsと新しいkwargsをマージ
+        # Merge existing kwargs with new kwargs
+        if "kwargs" not in session:
+            session["kwargs"] = {}
+            
+        if not isinstance(session["kwargs"], dict):
+            session["kwargs"] = {}
+            
+        session["kwargs"].update(kwargs)
+        
+        # 親クラスのinvokeメソッドを呼び出す
+        # Call the invoke method of the parent class
+        try:
+            return super().invoke(input)
+        except Exception as e:
+            print(f"チェインの実行中にエラーが発生しました / Error occurred during chain execution: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
 
 
 def chain(func=None, chain_id=None, step_index=None):

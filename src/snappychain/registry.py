@@ -148,33 +148,35 @@ class ComponentRegistry:
             debug_print(f"オブジェクトを設定 / Setting object", 
                        f"Key: {key}", Color.CYAN)
     
-    def get_chain_object(self, chain_id: str, index: int) -> Optional[Any]:
+    def get_chain_object(self, chain_id: str, index: int, key: str = "default") -> Optional[Any]:
         """
-        チェインIDとインデックスに対応したオブジェクトを取得する
-        Get object corresponding to chain ID and index
+        チェインIDとインデックスとキーに対応したオブジェクトを取得する
+        Get object corresponding to chain ID, index and key
         
         Args:
             chain_id (str): チェインID / Chain ID
             index (int): インデックス / Index
+            key (str): キー（デフォルトは"default"） / Key (default is "default")
             
         Returns:
             Any: 対応するオブジェクト、存在しない場合はNone / Corresponding object, None if not exists
         """
-        key = (chain_id, index)
-        return self.get_object(key)
+        composite_key = (chain_id, index, key)
+        return self.get_object(composite_key)
     
-    def set_chain_object(self, chain_id: str, index: int, obj: Any) -> None:
+    def set_chain_object(self, chain_id: str, index: int, obj: Any, key: str = "default") -> None:
         """
-        チェインIDとインデックスに対応したオブジェクトを設定する
-        Set object corresponding to chain ID and index
+        チェインIDとインデックスとキーに対応したオブジェクトを設定する
+        Set object corresponding to chain ID, index and key
         
         Args:
             chain_id (str): チェインID / Chain ID
             index (int): インデックス / Index
             obj (Any): 設定するオブジェクト / Object to set
+            key (str): キー（デフォルトは"default"） / Key (default is "default")
         """
-        key = (chain_id, index)
-        self.set_object(key, obj)
+        composite_key = (chain_id, index, key)
+        self.set_object(composite_key, obj)
     
     def get_chain_objects(self, chain_id: str) -> List[Tuple[int, Any]]:
         """
@@ -193,8 +195,8 @@ class ComponentRegistry:
         
         result = []
         for key in list(self.chain_objects.keys()):
-            if isinstance(key, tuple) and len(key) == 2 and key[0] == chain_id:
-                cid, idx = key
+            if isinstance(key, tuple) and len(key) == 3 and key[0] == chain_id:
+                cid, idx, _ = key
                 # アクセス時間を更新
                 # Update access time
                 self.access_times[key] = datetime.now()
@@ -223,7 +225,7 @@ class ComponentRegistry:
         """
         keys_to_remove = []
         for key in list(self.chain_objects.keys()):
-            if isinstance(key, tuple) and len(key) == 2 and key[0] == chain_id:
+            if isinstance(key, tuple) and len(key) == 3 and key[0] == chain_id:
                 keys_to_remove.append(key)
         
         # オブジェクトとアクセス時間を削除
@@ -237,85 +239,6 @@ class ComponentRegistry:
                        f"Chain ID: {chain_id}, Removed count: {len(keys_to_remove)}", Color.YELLOW)
         
         return len(keys_to_remove)
-    
-    def get_model(self, model_type, **kwargs):
-        """
-        モデルを取得または作成する
-        Get or create a model
-        
-        Args:
-            model_type (str): モデルの種類 (openai, anthropic, ollama など) / Model type (openai, anthropic, ollama, etc.)
-            **kwargs: モデルのパラメータ / Model parameters
-            
-        Returns:
-            モデルインスタンス / Model instance
-        """
-        # モデルパラメータから識別子を生成
-        # Generate identifier from model parameters
-        model_params = {"type": model_type, **kwargs}
-        model_id = self.generate_id(model_params)
-        
-        # キャッシュからモデルを取得
-        # Get model from cache
-        model = self.get_object(("model", model_id))
-        
-        if model is None:
-            if self.verbose:
-                debug_print(f"モデルを新規作成 / Creating new model", f"{model_type} [ID: {model_id}]", Color.CYAN)
-            
-            # モデルの種類に応じてインスタンスを作成
-            # Create instance based on model type
-            if model_type == "openai":
-                model = ChatOpenAI(model_name=kwargs.get("model_name", "gpt-4o-mini"), 
-                                  temperature=kwargs.get("temperature", 0.7))
-            elif model_type == "anthropic":
-                model = ChatAnthropic(model_name=kwargs.get("model_name", "claude-3-haiku-20240307"), 
-                                     temperature=kwargs.get("temperature", 0.7))
-            elif model_type == "ollama":
-                model = ChatOllama(model=kwargs.get("model_name", "llama3"), 
-                                  temperature=kwargs.get("temperature", 0.7))
-            else:
-                raise ValueError(f"不明なモデルタイプ / Unknown model type: {model_type}")
-            
-            # モデルをキャッシュに保存
-            # Save model to cache
-            self.set_object(("model", model_id), model)
-        elif self.verbose:
-            debug_print(f"キャッシュからモデルを取得 / Getting model from cache", f"{model_type} [ID: {model_id}]", Color.CYAN)
-        
-        return model
-    
-    def get_prompt(self, messages):
-        """
-        プロンプトテンプレートを取得または作成する
-        Get or create a prompt template
-        
-        Args:
-            messages (list): メッセージのリスト / List of messages
-            
-        Returns:
-            ChatPromptTemplate: プロンプトテンプレートインスタンス / Prompt template instance
-        """
-        # メッセージから識別子を生成
-        # Generate identifier from messages
-        prompt_id = self.generate_id(messages)
-        
-        # キャッシュからプロンプトテンプレートを取得
-        # Get prompt template from cache
-        prompt = self.get_object(("prompt", prompt_id))
-        
-        if prompt is None:
-            if self.verbose:
-                debug_print(f"プロンプトテンプレートを新規作成 / Creating new prompt template", f"[ID: {prompt_id}]", Color.CYAN)
-            prompt = ChatPromptTemplate.from_messages(messages)
-            
-            # プロンプトテンプレートをキャッシュに保存
-            # Save prompt template to cache
-            self.set_object(("prompt", prompt_id), prompt)
-        elif self.verbose:
-            debug_print(f"キャッシュからプロンプトテンプレートを取得 / Getting prompt template from cache", f"[ID: {prompt_id}]", Color.CYAN)
-        
-        return prompt
 
 # レジストリのインスタンスを作成
 # Create registry instance

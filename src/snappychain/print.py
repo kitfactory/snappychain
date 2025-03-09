@@ -60,7 +60,7 @@ def _format_output(
     prefix: str, 
     data: Any, 
     color: Color,
-    separator_length: int = 50
+    separator_length: int = 20
 ) -> None:
     """
     出力を整形する内部関数
@@ -91,7 +91,7 @@ def debug_print(
     prefix: str, 
     data: Any, 
     color: Color = Color.BLUE,
-    separator_length: int = 50
+    separator_length: int = 20
 ) -> None:
     """
     デバッグ情報を出力する関数（LangChainのdebug設定に基づく）
@@ -112,7 +112,7 @@ def verbose_print(
     prefix: str, 
     data: Any, 
     color: Color = Color.GREEN,
-    separator_length: int = 50
+    separator_length: int = 20
 ) -> None:
     """
     詳細情報を出力する関数（LangChainのverbose設定に基づく）
