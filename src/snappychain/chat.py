@@ -5,10 +5,12 @@ from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate, AIMessagePromptTemplate
 from langchain.output_parsers.structured import StructuredOutputParser
 from langchain_core.output_parsers import StrOutputParser
+from typing import Dict, Any, Optional, List
 
-from .print import debug_print, debug_request, debug_response, debug_error, Color, is_verbose, verbose_print
+from .print import verbose_print, Color
 from .registry import registry
-from .chain import get_chain_id, get_step_index
+from .chain import get_chain_id, get_step_index, Chain
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
 def _get_template(data: dict) -> ChatPromptTemplate:
     """Create a ChatPromptTemplate from the provided data.
@@ -85,18 +87,17 @@ def _chat(data:dict, model_type, *args, **kwargs) -> dict:
     Returns:
         dict: 応答を含む更新されたデータ / Updated data with response
     """
-    # verboseパラメータを取得（kwargsまたはLangChainのグローバル設定から）
-    # Get verbose parameter (from kwargs or LangChain global settings)
-    verbose_param = kwargs.get("verbose", False)
-    
-    # kwargsのverboseまたはLangChainのverbose設定のいずれかがTrueの場合、verboseモードを有効にする
-    # Enable verbose mode if either kwargs verbose or LangChain verbose setting is True
-    verbose_mode = verbose_param or is_verbose()
+    # verboseパラメータを取得
+    # Get verbose parameter from kwargs
+    verbose_mode = kwargs.get("verbose", False)
     
     if verbose_mode:
-        # verboseモードが有効な場合はデータを表示
-        # Display data if verbose mode is enabled
-        debug_request(data)
+        verbose_print("デバッグ情報 / Debug info", {
+            "入力データ / Input data": data,
+            "モデル / Model": model_type,
+            "引数 / Args": args,
+            "キーワード引数 / Kwargs": kwargs
+        }, Color.MAGENTA)
     
     # レジストリのverboseモードを設定
     # Set verbose mode for registry
@@ -107,8 +108,6 @@ def _chat(data:dict, model_type, *args, **kwargs) -> dict:
     # セッションにargsとkwargsを保存
     # Save args and kwargs to session
     if args:
-        # タプルとして保存（辞書ではない）
-        # Save as a tuple (not a dictionary)
         session["args"] = args
     
     # 既存のkwargsと新しいkwargsをマージ
@@ -153,7 +152,7 @@ def _chat(data:dict, model_type, *args, **kwargs) -> dict:
             model = ChatAnthropic(model_name=kwargs.get("model_name", "claude-3-haiku-20240307"), 
                                  temperature=kwargs.get("temperature", 0.7))
         elif model_type == "ollama":
-            model = ChatOllama(model=kwargs.get("model_name", "llama3"), 
+            model = ChatOllama(model=kwargs.get("model", "llama3"), 
                               temperature=kwargs.get("temperature", 0.7))
         else:
             raise ValueError(f"不明なモデルタイプ / Unknown model type: {model_type}")
@@ -168,18 +167,26 @@ def _chat(data:dict, model_type, *args, **kwargs) -> dict:
     template = _get_template(data)
     template_replaced = template.invoke(data)
 
-    # verboseモードの時はログ表示
     if verbose_mode:
-        # LLMに入力する最終的なプロンプト文字列はYELLOW
-        verbose_print("LLMリクエスト / LLM Request", template_replaced, Color.YELLOW)
+        # 1. チェインの開始を表示
+        verbose_print("チェインの実行開始 / Chain execution start", 
+                   f"Chain ID: {chain_id}, Model: {model_type}", Color.CYAN)
+        
+        # 2. リクエストの全体を表示（メッセージのみ）
+        verbose_print("リクエスト / Request", [
+            {"role": m.type_, "content": m.content} 
+            for m in template_replaced.messages
+        ], Color.GREEN)
 
     # LLMに確認する
     response = model.invoke(template_replaced)
+    
     if verbose_mode:
-        # LLMからの返答や出力はGREEN
-        verbose_print("LLM応答 / LLM Response", response, Color.GREEN)
+        # 3. 応答アウトプットを表示
+        verbose_print("応答 / Response", response.content, Color.YELLOW)
     
     schemas = session.get("schema", [])
+    parsed_response = None
     if schemas:
         try:
             # 構造化出力用のパーサーを作成
@@ -210,192 +217,148 @@ def _chat(data:dict, model_type, *args, **kwargs) -> dict:
                 # If no system prompt exists, add it as the first one
                 session["prompt"].insert(0, {"system": format_instructions})
             
-            if verbose_mode:
-                # VectorSearchなど各Retriver結果はCYAN
-                verbose_print("フォーマット指示 / Format Instructions", format_instructions, Color.CYAN)
-                
             # 構造化出力のパースを試みる
             # Try to parse structured output
             try:
                 parsed_response = parser.parse(response.content)
                 session["structured_response"] = parsed_response
-                if verbose_mode:
-                    # Rerank結果はMAGENTA
-                    verbose_print("構造化応答 / Structured Response", parsed_response, Color.MAGENTA)
             except Exception as e:
-                debug_error(f"構造化応答のパース失敗 / Failed to parse structured response: {str(e)}")
+                if verbose_mode:
+                    verbose_print("エラー / Error", f"構造化応答のパース失敗 / Failed to parse structured response: {str(e)}", Color.RED)
                 # パースに失敗した場合でも元の応答は保存
                 # Store the original response even if parsing fails
         except Exception as e:
-            debug_error(f"構造化出力の設定エラー / Error setting up structured output: {str(e)}")
+            if verbose_mode:
+                verbose_print("エラー / Error", f"構造化出力の設定エラー / Error setting up structured output: {str(e)}", Color.RED)
+    
+    if verbose_mode:
+        # 4. チェインの終了を表示（パース結果を含む）
+        verbose_print("チェインの実行完了 / Chain execution complete", {
+            "chain_id": chain_id,
+            "result": parsed_response if parsed_response is not None else response.content
+        }, Color.CYAN)
     
     session["response"] = response
     return data
 
-def openai_chat(model="gpt-4o-mini", temperature=0.2) -> RunnableLambda:
+def _convert_messages(messages: List[Dict[str, str]]) -> List[Any]:
     """
-    Create a runnable lambda that generates a response using the OpenAI chat model following LangChain LCEL.
-    LangChain LCELに沿ってOpenAIチャットモデルを使用し、応答を生成する実行可能なlambdaを返します。
+    Convert message dictionaries to LangChain message objects.
+    メッセージ辞書をLangChainメッセージオブジェクトに変換します。
 
     Args:
-        model (str): 使用するモデル名 / Model name to use
-        temperature (float): 温度パラメータ / Temperature parameter
+        messages (List[Dict[str, str]]): List of message dictionaries.
+                                       メッセージ辞書のリスト。
 
     Returns:
-        RunnableLambda: 実行可能なlambda関数 / Runnable lambda function.
+        List[Any]: List of LangChain message objects.
+                  LangChainメッセージオブジェクトのリスト。
     """
-    def inner(data: dict, *args, **kwargs) -> dict:
-        """
-        Extracts the last user prompt and generates a chat response using OpenAI's chat model.
-        最後のユーザープロンプトを抽出し、OpenAIのチャットモデルを使用して応答を生成する内部関数です。
+    converted = []
+    for msg in messages:
+        if "system" in msg:
+            converted.append(SystemMessage(content=msg["system"]))
+        elif "human" in msg:
+            converted.append(HumanMessage(content=msg["human"]))
+        elif "ai" in msg:
+            converted.append(AIMessage(content=msg["ai"]))
+    return converted
 
-        Args:
-            data (dict): 入力データ辞書 / Input data dictionary.
-            *args: 可変長位置引数 / Variable length positional arguments
-            **kwargs: 追加のパラメータ（verboseなど） / Additional parameters (e.g., verbose)
-
-        Returns:
-            dict: 応答が追加されたデータ辞書 / Data dictionary with the chat response appended.
-        """
-        # モデルパラメータを設定
-        # Set model parameters
-        model_kwargs = {
-            "model_name": model,
-            "temperature": temperature
-        }
-        
-        # セッションにargsとkwargsを保存
-        # Save args and kwargs to session
-        if "_session" not in data:
-            data["_session"] = {}
-        session = data["_session"]
-        
-        if args:
-            session["args"] = args
-        
-        # 既存のkwargsと新しいkwargsをマージ
-        # Merge existing kwargs with new kwargs
-        session_kwargs = session.get("kwargs", {})
-        if isinstance(session_kwargs, dict):
-            session_kwargs.update(kwargs)
-        else:
-            session_kwargs = kwargs
-        session["kwargs"] = session_kwargs
-        
-        # _chat関数を呼び出し
-        # Call _chat function
-        return _chat(data, "openai", *args, **{**model_kwargs, **kwargs})
-
-    return RunnableLambda(inner)
-
-def anthropic_chat(model="claude-3-haiku-20240307", temperature=0.2) -> RunnableLambda:
+def ollama_chat(model: str = "phi4-mini:latest", temperature: float = 0.2) -> Chain:
     """
-    Create a runnable lambda that generates a response using the Anthropic chat model following LangChain LCEL.
-    LangChain LCELに沿ってAnthropicチャットモデルを使用し、応答を生成する実行可能なlambdaを返します。
+    Create a chat chain using Ollama's models.
+    Ollamaのモデルを使用してチャットチェーンを作成します。
 
     Args:
-        model (str): 使用するモデル名 / Model name to use
-        temperature (float): 温度パラメータ / Temperature parameter
+        model (str): The model to use. Defaults to "phi4-mini:latest".
+                    使用するモデル。デフォルトは "phi4-mini:latest"。
+        temperature (float): The temperature parameter. Defaults to 0.2.
+                           温度パラメータ。デフォルトは0.2。
 
     Returns:
-        RunnableLambda: 実行可能なlambda関数 / Runnable lambda function.
+        Chain: A chain that can be used in a chain.
+               チェーンで使用できるチェーン。
     """
-    def inner(data: dict, *args, **kwargs) -> dict:
-        """
-        Extracts the last user prompt and generates a chat response using Anthropic's chat model.
-        最後のユーザープロンプトを抽出し、Anthropicのチャットモデルを使用して応答を生成する内部関数です。
-
-        Args:
-            data (dict): 入力データ辞書 / Input data dictionary.
-            *args: 可変長位置引数 / Variable length positional arguments
-            **kwargs: 追加のパラメータ（verboseなど） / Additional parameters (e.g., verbose)
-
-        Returns:
-            dict: 応答が追加されたデータ辞書 / Data dictionary with the chat response appended.
-        """
-        # モデルパラメータを設定
-        # Set model parameters
-        model_kwargs = {
-            "model_name": model,
-            "temperature": temperature
-        }
-        
-        # セッションにargsとkwargsを保存
-        # Save args and kwargs to session
+    def inner(data: Dict[str, Any], *args, **kwargs) -> Dict[str, Any]:
         if "_session" not in data:
             data["_session"] = {}
-        session = data["_session"]
         
-        if args:
-            session["args"] = args
+        # verboseパラメータを処理
+        verbose_mode = kwargs.get("verbose", False)
+        if verbose_mode:
+            verbose_print("Ollama Chat", f"Starting chat with model: {model}", Color.CYAN)
         
-        # 既存のkwargsと新しいkwargsをマージ
-        # Merge existing kwargs with new kwargs
-        session_kwargs = session.get("kwargs", {})
-        if isinstance(session_kwargs, dict):
-            session_kwargs.update(kwargs)
-        else:
-            session_kwargs = kwargs
-        session["kwargs"] = session_kwargs
-        
-        # _chat関数を呼び出し
-        # Call _chat function
-        return _chat(data, "anthropic", *args, **{**model_kwargs, **kwargs})
+        return _chat(data, "ollama", *args, **{
+            "model": model,
+            "temperature": temperature,
+            "verbose": verbose_mode,
+            **kwargs
+        })
+    
+    return Chain(inner)
 
-    return RunnableLambda(inner)
-
-def ollama_chat(model="llama3", temperature=0.2) -> RunnableLambda:
+def openai_chat(model: str = "gpt-4o-mini", temperature: float = 0.2) -> Chain:
     """
-    Create a runnable lambda that generates a response using the Ollama chat model following LangChain LCEL.
-    LangChain LCELに沿ってOllamaチャットモデルを使用し、応答を生成する実行可能なlambdaを返します。
+    Create a chat chain using OpenAI's models.
+    OpenAIのモデルを使用してチャットチェーンを作成します。
 
     Args:
-        model (str): 使用するモデル名 / Model name to use
-        temperature (float): 温度パラメータ / Temperature parameter
+        model (str): The model to use. Defaults to "gpt-4o-mini".
+                    使用するモデル。デフォルトは "gpt-4o-mini"。
+        temperature (float): The temperature parameter. Defaults to 0.2.
+                           温度パラメータ。デフォルトは0.2。
 
     Returns:
-        RunnableLambda: 実行可能なlambda関数 / Runnable lambda function.
+        Chain: A chain that can be used in a chain.
+               チェーンで使用できるチェーン。
     """
-    def inner(data: dict, *args, **kwargs) -> dict:
-        """
-        Extracts the last user prompt and generates a chat response using Ollama's chat model.
-        最後のユーザープロンプトを抽出し、Ollamaのチャットモデルを使用して応答を生成する内部関数です。
-
-        Args:
-            data (dict): 入力データ辞書 / Input data dictionary.
-            *args: 可変長位置引数 / Variable length positional arguments
-            **kwargs: 追加のパラメータ（verboseなど） / Additional parameters (e.g., verbose)
-
-        Returns:
-            dict: 応答が追加されたデータ辞書 / Data dictionary with the chat response appended.
-        """
-        # モデルパラメータを設定
-        # Set model parameters
-        model_kwargs = {
-            "model_name": model,
-            "temperature": temperature
-        }
-        
-        # セッションにargsとkwargsを保存
-        # Save args and kwargs to session
+    def inner(data: Dict[str, Any], *args, **kwargs) -> Dict[str, Any]:
         if "_session" not in data:
             data["_session"] = {}
-        session = data["_session"]
         
-        if args:
-            session["args"] = args
+        # verboseパラメータを処理
+        verbose_mode = kwargs.get("verbose", False)
+        if verbose_mode:
+            verbose_print("OpenAI Chat", f"Starting chat with model: {model}", Color.CYAN)
         
-        # 既存のkwargsと新しいkwargsをマージ
-        # Merge existing kwargs with new kwargs
-        session_kwargs = session.get("kwargs", {})
-        if isinstance(session_kwargs, dict):
-            session_kwargs.update(kwargs)
-        else:
-            session_kwargs = kwargs
-        session["kwargs"] = session_kwargs
-        
-        # _chat関数を呼び出し
-        # Call _chat function
-        return _chat(data, "ollama", *args, **{**model_kwargs, **kwargs})
+        return _chat(data, "openai", *args, **{
+            "model_name": model,
+            "temperature": temperature,
+            "verbose": verbose_mode,
+            **kwargs
+        })
+    
+    return Chain(inner)
 
-    return RunnableLambda(inner)
+def anthropic_chat(model: str = "claude-3-haiku-20240307", temperature: float = 0.2) -> Chain:
+    """
+    Create a chat chain using Anthropic's models.
+    Anthropicのモデルを使用してチャットチェーンを作成します。
+
+    Args:
+        model (str): The model to use. Defaults to "claude-3-haiku-20240307".
+                    使用するモデル。デフォルトは "claude-3-haiku-20240307"。
+        temperature (float): The temperature parameter. Defaults to 0.2.
+                           温度パラメータ。デフォルトは0.2。
+
+    Returns:
+        Chain: A chain that can be used in a chain.
+               チェーンで使用できるチェーン。
+    """
+    def inner(data: Dict[str, Any], *args, **kwargs) -> Dict[str, Any]:
+        if "_session" not in data:
+            data["_session"] = {}
+        
+        # verboseパラメータを処理
+        verbose_mode = kwargs.get("verbose", False)
+        if verbose_mode:
+            verbose_print("Anthropic Chat", f"Starting chat with model: {model}", Color.CYAN)
+        
+        return _chat(data, "anthropic", *args, **{
+            "model_name": model,
+            "temperature": temperature,
+            "verbose": verbose_mode,
+            **kwargs
+        })
+    
+    return Chain(inner)

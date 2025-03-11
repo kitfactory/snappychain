@@ -6,6 +6,7 @@ Module providing chain ID management and basic chain functionality
 from langchain_core.runnables import RunnableLambda, Runnable
 import uuid
 from typing import Dict, List, Any, Optional, Union, Callable
+from .print import verbose_print, Color
 
 # チェインIDを管理するグローバル辞書
 # Global dictionary to manage chain IDs
@@ -220,6 +221,17 @@ class Chain(RunnableLambda):
         session = input["_session"]
         session["chain"] = self
         
+        # verboseパラメータを取得
+        # Get verbose parameter
+        verbose_mode = kwargs.get("verbose", False)
+        
+        # verboseモードの場合、情報を出力
+        # Output information in verbose mode
+        if verbose_mode:
+            verbose_print("チェインの実行開始 / Chain execution start", 
+                       f"Chain ID: {self.chain_id}, Step Index: {self.step_index}", Color.CYAN)
+            verbose_print("入力データ / Input data", input, Color.GREEN)
+        
         # argsとkwargsをセッションに保存
         # Save args and kwargs to session
         if args:
@@ -238,9 +250,20 @@ class Chain(RunnableLambda):
         # 親クラスのinvokeメソッドを呼び出す
         # Call the invoke method of the parent class
         try:
-            return super().invoke(input)
+            result = super().invoke(input, *args, **kwargs)
+            
+            # verboseモードの場合、結果を出力
+            # Output result in verbose mode
+            if verbose_mode:
+                verbose_print("実行結果 / Execution result", result, Color.YELLOW)
+                verbose_print("チェインの実行完了 / Chain execution complete", 
+                          f"Chain ID: {self.chain_id}, Step Index: {self.step_index}", Color.GREEN)
+            
+            return result
         except Exception as e:
-            print(f"チェインの実行中にエラーが発生しました / Error occurred during chain execution: {str(e)}")
+            # エラー情報を出力
+            # Output error information
+            verbose_print("エラー / Error", f"チェインの実行中にエラーが発生しました / Error occurred during chain execution: {str(e)}", Color.RED)
             import traceback
             traceback.print_exc()
             raise

@@ -24,8 +24,6 @@ from snappychain.print import verbose_print, debug_print, Color
 
 from snappychain.bm25sj import BM25SJRetriever
 
-logger = Logger.get_logger(__name__)
-
 """
 {
     "embeddings": {
@@ -281,7 +279,7 @@ class Rag:
                 メソッドチェーン用の自身のインスタンス
         """
         if not documents:
-            logger.warning("No documents provided for addition")
+            verbose_print("RAG", "No documents provided for addition", Color.YELLOW)
             return self
 
         # Use lock to ensure thread safety for document updates
@@ -289,7 +287,7 @@ class Rag:
             try:
                 # Add to vector store if available
                 if self.vector_store:
-                    logger.info(f"Adding {len(documents)} documents to vector store")
+                    verbose_print("RAG", f"Adding {len(documents)} documents to vector store", Color.YELLOW)
                     self.vector_store.add_documents(documents)
                     if hasattr(self.vector_store, 'persist'):
                         self.vector_store.persist()
@@ -297,13 +295,13 @@ class Rag:
                 # Add to other retrievers
                 for retriever in self.retrievers:
                     if retriever and hasattr(retriever, 'add_documents') and retriever != self.vector_store.as_retriever():
-                        logger.info(f"Adding {len(documents)} documents to {retriever.__class__.__name__}")
+                        verbose_print("RAG", f"Adding {len(documents)} documents to {retriever.__class__.__name__}", Color.YELLOW)
                         retriever.add_documents(documents)
                 
-                logger.info(f"Successfully added {len(documents)} documents to all retrievers")
+                verbose_print("RAG", f"Successfully added {len(documents)} documents to all retrievers", Color.GREEN)
             
             except Exception as e:
-                logger.error(f"Error adding documents: {str(e)}")
+                verbose_print("RAG", f"Error adding documents: {str(e)}", Color.RED)
                 raise
         
         return self
@@ -351,20 +349,20 @@ class Rag:
             for retriever in self.retrievers:
                 try:
                     docs = retriever.get_relevant_documents(question)
-                    logger.debug(f"Retrieved {len(docs)} documents from {retriever.__class__.__name__}")
+                    verbose_print("RAG", f"Retrieved {len(docs)} documents from {retriever.__class__.__name__}", Color.YELLOW)
                     all_docs.extend(docs)
                 except Exception as e:
-                    logger.error(f"Error retrieving from {retriever.__class__.__name__}: {str(e)}")
+                    verbose_print("RAG", f"Error retrieving from {retriever.__class__.__name__}: {str(e)}", Color.RED)
             
-            logger.info(f"Retrieved total of {len(all_docs)} documents")
+            verbose_print("RAG", f"Retrieved total of {len(all_docs)} documents", Color.GREEN)
             
             # Rerank documents if reranker is available
             if self.reranker and all_docs:
                 try:
                     all_docs = self.reranker(question, all_docs)
-                    logger.debug("Documents reranked successfully")
+                    verbose_print("RAG", "Documents reranked successfully", Color.GREEN)
                 except Exception as e:
-                    logger.error(f"Error during reranking: {str(e)}")
+                    verbose_print("RAG", f"Error during reranking: {str(e)}", Color.RED)
             
             # Limit to top_k*2 documents for the final prompt
             all_docs = all_docs[:top_k*2]
@@ -394,7 +392,7 @@ class Rag:
             return response
             
         except Exception as e:
-            logger.error(f"Error during RAG query: {str(e)}")
+            verbose_print("RAG", f"Error during RAG query: {str(e)}", Color.RED)
             raise
 
     def batch_query(self, questions: List[str], max_workers: int = 3) -> List[Dict[str, Any]]:
@@ -425,7 +423,7 @@ class Rag:
                 query_time = time.time() - start_time
                 return {"query": q, "result": result, "time": query_time, "success": True}
             except Exception as e:
-                logger.error(f"Error processing query '{q}': {str(e)}")
+                verbose_print("RAG", f"Error processing query '{q}': {str(e)}", Color.RED)
                 return {"query": q, "result": str(e), "time": time.time() - start_time, "success": False}
         
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -459,5 +457,5 @@ def build_rag_chain(config: Dict[str, Any]) -> Rag:
         return rag
         
     except Exception as e:
-        logger.error(f"Error building RAG chain: {str(e)}")
+        verbose_print("RAG", f"Error building RAG chain: {str(e)}", Color.RED)
         raise

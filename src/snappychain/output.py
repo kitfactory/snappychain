@@ -7,14 +7,15 @@ from langchain_core.output_parsers.string import StrOutputParser
 from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_core.output_parsers.list import MarkdownListOutputParser, NumberedListOutputParser
 from langchain_core.runnables import RunnableLambda
-from .print import debug_print, verbose_print, Color
+from .print import verbose_print, Color
 from .registry import ComponentRegistry
+from .chain import Chain, get_chain_id
 
 # レジストリのインスタンスを取得
 # Get registry instance
 registry = ComponentRegistry()
 
-def output(type: str = "text") -> RunnableLambda:
+def output(type: str = "text") -> Chain:
     """
     OutputParserを使用して応答を解析し、解析された値を直接返却します。
     Parse the response using OutputParser and return the parsed value directly.
@@ -31,8 +32,8 @@ def output(type: str = "text") -> RunnableLambda:
             - numbered: 番号付きリスト形式 / Numbered list format
 
     Returns:
-        RunnableLambda: 解析された値を返すRunnableLambda
-                       RunnableLambda that returns the parsed value
+        Chain: 解析された値を返すChain
+               Chain that returns the parsed value
 
     Examples:
         >>> from langchain_core.prompts import ChatPromptTemplate
@@ -88,6 +89,28 @@ def output(type: str = "text") -> RunnableLambda:
             
         session = data["_session"]
         
+        # verboseパラメータを取得
+        # Get verbose parameter
+        verbose_mode = kwargs.get("verbose", False)
+        
+        # チェインIDとインデックスを取得
+        chain_id = None
+        if "chain" in session:
+            chain = session.get("chain")
+            chain_id = get_chain_id(chain)
+        
+        if verbose_mode:
+            # デバッグ情報を表示
+            verbose_print("デバッグ情報 / Debug info", {
+                "入力データ / Input data": data,
+                "引数 / Args": args,
+                "キーワード引数 / Kwargs": kwargs
+            }, Color.MAGENTA)
+            
+            # 1. チェインの開始を表示
+            verbose_print("出力パース開始 / Output parsing start", 
+                       f"Chain ID: {chain_id}, Type: {type}", Color.CYAN)
+        
         # argsとkwargsをセッションに保存
         # Save args and kwargs to session
         if args:
@@ -107,9 +130,17 @@ def output(type: str = "text") -> RunnableLambda:
         # If structured_response exists, return it
         if "structured_response" in session:
             structured_response = session["structured_response"]
-            if kwargs.get("verbose") == True or session.get("kwargs", {}).get("verbose") == True:
-                verbose_print("構造化レスポンスを返します / Returning structured response", 
-                           f"{structured_response}", Color.YELLOW)
+            if verbose_mode:
+                # 2. リクエストの全体を表示
+                verbose_print("パース対象 / Parse target", 
+                           {"type": "structured", "data": structured_response}, Color.GREEN)
+                # 3. 応答アウトプットを表示
+                verbose_print("パース結果 / Parse result", structured_response, Color.YELLOW)
+                # 4. チェインの終了を表示
+                verbose_print("出力パース完了 / Output parsing complete", {
+                    "chain_id": chain_id,
+                    "result": structured_response
+                }, Color.CYAN)
             return structured_response
         
         # 通常の応答処理
@@ -121,11 +152,24 @@ def output(type: str = "text") -> RunnableLambda:
         else:
             response = str(data)
             
+        if verbose_mode:
+            # 2. リクエストの全体を表示
+            verbose_print("パース対象 / Parse target", 
+                       {"type": type, "data": response}, Color.GREEN)
+        
         # 応答をパースして返却
         # Parse response and return
         parsed_response = parser.invoke(response)
-        if kwargs.get("verbose") == True or session.get("kwargs", {}).get("verbose") == True:
-            verbose_print("出力 / Output", f"{parsed_response}", Color.YELLOW)
+        
+        if verbose_mode:
+            # 3. 応答アウトプットを表示
+            verbose_print("パース結果 / Parse result", parsed_response, Color.YELLOW)
+            # 4. チェインの終了を表示
+            verbose_print("出力パース完了 / Output parsing complete", {
+                "chain_id": chain_id,
+                "result": parsed_response
+            }, Color.CYAN)
+        
         return parsed_response
     
-    return RunnableLambda(inner)
+    return Chain(inner)

@@ -27,7 +27,7 @@ from .chain import (
 
 # 通常のインポートを使用して他のモジュールをインポート
 # Import other modules using regular import
-from .chat import openai_chat
+from .chat import openai_chat, ollama_chat
 from .prompt import system_prompt, human_prompt, ai_prompt
 from .schema import schema
 from .devmode import validate
@@ -48,8 +48,8 @@ from .splitter import split_text, recursive_split_text, markdown_text_splitter, 
 # Import for other functions
 from .wikipedia import wikipedia_to_text
 from .rag import build_rag_chain
-from .vectorstore import UnifiedVectorStore
-from .rerank import UnifiedRerank
+from .vectorstore import UnifiedVectorStore, vectorstore
+from .rerank import UnifiedRerank, rerank
 from .bm25sj import BM25SJRetriever, bm25sj, bm25sj_query
 
 
@@ -106,7 +106,7 @@ def check_option():
 __all__ = [
     # チャット関連 / Chat related
     "openai_chat",
-    # "ollama_chat",
+    "ollama_chat",
     # "gemini_chat",
     # "anthropic_chat",
     
@@ -136,9 +136,11 @@ __all__ = [
     
     # ベクトルストア関連 / Vector store related
     "UnifiedVectorStore",
+    "vectorstore",
     
     # リランク関連 / Rerank related
     "UnifiedRerank",
+    "rerank",
     
     # BM25SJ関連 / BM25SJ related
     "BM25SJRetriever",

@@ -90,7 +90,7 @@ def _format_output(
 def debug_print(
     prefix: str, 
     data: Any, 
-    color: Color = Color.BLUE,
+    color: Color = Color.RED,
     separator_length: int = 20
 ) -> None:
     """

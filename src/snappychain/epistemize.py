@@ -21,8 +21,6 @@ from .schema import schema
 from .output import output
 from .devmode import validate as dev
 
-logger = Logger.get_logger(__name__)
-
 # スレッドプールエグゼキューター
 # Thread pool executor
 _executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
@@ -350,15 +348,14 @@ def epistemize(model: str = "gpt-4o-mini", temperature: float = 0.2, file_path: 
                 # 開発モードの時はログ表示
                 # Display log in development mode
                 if dev_mode:
-                    logger.debug("\033[33mEpistemize Structured Response: %s neologisms, %s praxis\033[0m", 
-                                len(neologisms), len(praxis))
+                    verbose_print("Epistemize", f"Structured Response: {len(neologisms)} neologisms, {len(praxis)} praxis", Color.GREEN)
                 
                 return {
                     "neologisms": neologisms,
                     "praxis": praxis
                 }
             else:
-                logger.error("\033[31mInvalid structured response format\033[0m")
+                verbose_print("Epistemize", "Invalid structured response format", Color.RED)
                 # エラー時はテスト用のデータを設定
                 # Set test data on error
                 return {
@@ -377,7 +374,7 @@ def epistemize(model: str = "gpt-4o-mini", temperature: float = 0.2, file_path: 
                 }
                 
         except Exception as e:
-            logger.error("\033[31mError in epistemize thread: %s\033[0m", str(e))
+            verbose_print("Epistemize", f"Error in epistemize thread: {str(e)}", Color.RED)
             # エラー時はテスト用のデータを設定
             # Set test data on error
             return {
@@ -416,7 +413,7 @@ def epistemize(model: str = "gpt-4o-mini", temperature: float = 0.2, file_path: 
         # Check if response exists
         response = session.get("response")
         if not response:
-            logger.warning("\033[31mNo response found in session data\033[0m")
+            verbose_print("Epistemize", "No response found in session data", Color.RED)
             return data
         
         # レスポンスの内容を取得
@@ -427,7 +424,7 @@ def epistemize(model: str = "gpt-4o-mini", temperature: float = 0.2, file_path: 
         # Output log in development mode
         dev_mode = data.get("_dev", False)
         if dev_mode:
-            logger.debug("\033[32mEpistemize processing response: %s\033[0m", response_content[:100] + "...")
+            verbose_print("Epistemize", f"Epistemize processing response: {response_content[:100]}...", Color.GREEN)
         
         # 初期値を設定（非同期処理の結果が返ってくるまでの間に表示するデータ）
         # Set initial values (data to display while waiting for async processing)
@@ -456,9 +453,9 @@ def epistemize(model: str = "gpt-4o-mini", temperature: float = 0.2, file_path: 
                             "processing": False  # 処理完了
                         }
                         if dev_mode:
-                            logger.debug("\033[32mEpistemize processing completed and session updated\033[0m")
+                            verbose_print("Epistemize", "Epistemize processing completed and session updated", Color.GREEN)
             except Exception as e:
-                logger.error("\033[31mError in epistemize callback: %s\033[0m", str(e))
+                verbose_print("Epistemize", f"Error in epistemize callback: {str(e)}", Color.RED)
         
         # コールバック関数を設定
         # Set callback function
