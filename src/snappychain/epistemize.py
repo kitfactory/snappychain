@@ -7,7 +7,7 @@
 
 from typing import Dict, List, Any, Optional
 from langchain_core.runnables import RunnableLambda
-from onelogger import Logger
+from snappychain.print import verbose_print, debug_print, Color
 import os
 import json
 import threading
@@ -144,10 +144,11 @@ class Episteme:
                     # Validate data structure
                     if isinstance(loaded_data, dict) and "neologisms" in loaded_data and "praxis" in loaded_data:
                         self.data = loaded_data
+                        verbose_print("Episteme", f"Loaded {len(loaded_data['neologisms'])} neologisms and {len(loaded_data['praxis'])} praxis", Color.GREEN)
                     else:
-                        logger.warning("Invalid data structure in episteme file. Using default.")
+                        verbose_print("Episteme", "Invalid data structure in episteme file. Using default.", Color.YELLOW)
         except Exception as e:
-            logger.error("Error loading episteme: %s", str(e))
+            verbose_print("Episteme", f"Error loading episteme: {str(e)}", Color.RED)
     
     def save(self) -> None:
         """
@@ -157,8 +158,9 @@ class Episteme:
         try:
             with open(self.file_path, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, ensure_ascii=False, indent=2)
+            verbose_print("Episteme", f"Saved {len(self.data['neologisms'])} neologisms and {len(self.data['praxis'])} praxis", Color.GREEN)
         except Exception as e:
-            logger.error("Error saving episteme: %s", str(e))
+            verbose_print("Episteme", f"Error saving episteme: {str(e)}", Color.RED)
     
     def add_neologisms(self, new_neologisms: List[Dict[str, str]]) -> None:
         """
@@ -182,8 +184,10 @@ class Episteme:
             # Update if term exists, otherwise add
             if term in existing_terms:
                 self.data["neologisms"][existing_terms[term]] = neologism
+                debug_print("Episteme", f"Updated neologism: {term}", Color.CYAN)
             else:
                 self.data["neologisms"].append(neologism)
+                debug_print("Episteme", f"Added new neologism: {term}", Color.CYAN)
         
         # 変更をファイルに保存
         # Save changes to file
@@ -211,8 +215,10 @@ class Episteme:
             # Update if instruction exists, otherwise add
             if instruction in existing_instructions:
                 self.data["praxis"][existing_instructions[instruction]] = praxis
+                debug_print("Episteme", f"Updated praxis: {instruction}", Color.MAGENTA)
             else:
                 self.data["praxis"].append(praxis)
+                debug_print("Episteme", f"Added new praxis: {instruction}", Color.MAGENTA)
         
         # 変更をファイルに保存
         # Save changes to file
@@ -227,6 +233,7 @@ class Episteme:
             List[Dict[str, str]]: List of all neologisms.
             List[Dict[str, str]]: すべての新語のリスト。
         """
+        debug_print("Episteme", f"Retrieved {len(self.data['neologisms'])} neologisms", Color.CYAN)
         return self.data["neologisms"]
     
     def get_praxis(self) -> List[Dict[str, str]]:
@@ -238,6 +245,7 @@ class Episteme:
             List[Dict[str, str]]: List of all praxis.
             List[Dict[str, str]]: すべての実践のリスト。
         """
+        debug_print("Episteme", f"Retrieved {len(self.data['praxis'])} praxis", Color.MAGENTA)
         return self.data["praxis"]
 
 def epistemize(model: str = "gpt-4o-mini", temperature: float = 0.2, file_path: Optional[str] = None) -> RunnableLambda:

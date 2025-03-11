@@ -7,9 +7,7 @@ from langchain_community.document_loaders import (
 )
 from typing import Optional, List
 import os
-from onelogger import Logger
-
-logger = Logger.get_logger(__name__)
+from snappychain.print import verbose_print, debug_print, Color
 
 def text_load(file_paths: List[str], encoding: str = "utf-8") -> RunnableLambda:
     """
@@ -34,9 +32,14 @@ def text_load(file_paths: List[str], encoding: str = "utf-8") -> RunnableLambda:
         if "documents" not in data["_session"] or not isinstance(data["_session"]["documents"], list):
             data["_session"]["documents"] = []
         for file_path in file_paths:
-            loader = TextLoader(file_path, encoding=encoding)  # Initialize TextLoader with the file path and encoding // ファイルパスとエンコーディングでTextLoaderを初期化します
-            documents = loader.load()       # Load the documents // ドキュメントを読み込みます
-            data["_session"]["documents"].extend(documents)  # Append loaded documents to the session's documents list // 読み込んだドキュメントをセッションのリストに追加します
+            try:
+                verbose_print("Loader", f"Loading text file: {file_path}", Color.YELLOW)
+                loader = TextLoader(file_path, encoding=encoding)  # Initialize TextLoader with the file path and encoding // ファイルパスとエンコーディングでTextLoaderを初期化します
+                documents = loader.load()       # Load the documents // ドキュメントを読み込みます
+                data["_session"]["documents"].extend(documents)  # Append loaded documents to the session's documents list // 読み込んだドキュメントをセッションのリストに追加します
+                debug_print("Loader", f"Loaded {len(documents)} documents from {file_path}", Color.GREEN)
+            except Exception as e:
+                verbose_print("Loader", f"Error loading text file {file_path}: {str(e)}", Color.RED)
         return data
     return RunnableLambda(inner)
 
@@ -61,9 +64,14 @@ def pypdf_load(file_paths: List[str]) -> RunnableLambda:
         if "documents" not in data["_session"] or not isinstance(data["_session"]["documents"], list):
             data["_session"]["documents"] = []
         for file_path in file_paths:
-            loader = PyPDFLoader(file_path)  # Instantiate PyPDFLoader / PyPDFLoaderのインスタンスを生成
-            documents = loader.load()      # Load the PDF document(s) / PDFドキュメントを読み込む
-            data["_session"]["documents"].extend(documents)  # Append loaded documents to the session's documents list // 読み込んだドキュメントをセッションのリストに追加します
+            try:
+                verbose_print("Loader", f"Loading PDF file: {file_path}", Color.YELLOW)
+                loader = PyPDFLoader(file_path)  # Instantiate PyPDFLoader / PyPDFLoaderのインスタンスを生成
+                documents = loader.load()      # Load the PDF document(s) / PDFドキュメントを読み込む
+                data["_session"]["documents"].extend(documents)  # Append loaded documents to the session's documents list // 読み込んだドキュメントをセッションのリストに追加します
+                debug_print("Loader", f"Loaded {len(documents)} pages from PDF {file_path}", Color.GREEN)
+            except Exception as e:
+                verbose_print("Loader", f"Error loading PDF file {file_path}: {str(e)}", Color.RED)
         return data
     return RunnableLambda(inner)
 
@@ -93,10 +101,15 @@ def markitdown_load(file_paths: List[str]) -> RunnableLambda:
         md = MarkItDown(enable_plugins=False)  # Initialize MarkItDown / MarkItDownの初期化
         
         for file_path in file_paths:
-            result = md.convert(file_path)  # Convert file using MarkItDown / MarkItDownを使用してファイルを変換
-            # Create a Document with the converted text
-            doc = Document(page_content=result.text_content, metadata={"source": file_path})
-            data["_session"]["documents"].append(doc)  # Append the Document to the documents list
+            try:
+                verbose_print("Loader", f"Loading markdown file: {file_path}", Color.YELLOW)
+                result = md.convert(file_path)  # Convert file using MarkItDown / MarkItDownを使用してファイルを変換
+                # Create a Document with the converted text
+                doc = Document(page_content=result.text_content, metadata={"source": file_path})
+                data["_session"]["documents"].append(doc)  # Append the Document to the documents list
+                debug_print("Loader", f"Loaded and converted markdown file {file_path}", Color.GREEN)
+            except Exception as e:
+                verbose_print("Loader", f"Error loading markdown file {file_path}: {str(e)}", Color.RED)
         return data
     return RunnableLambda(inner)
 
@@ -138,12 +151,13 @@ def unstructured_markdown_load(file_paths: List[str]) -> RunnableLambda:
         
         for file_path in file_paths:
             try:
+                verbose_print("Loader", f"Loading unstructured markdown file: {file_path}", Color.YELLOW)
                 loader = UnstructuredMarkdownLoader(file_path)
                 documents = loader.load()
                 data["_session"]["documents"].extend(documents)
+                debug_print("Loader", f"Loaded {len(documents)} documents from {file_path}", Color.GREEN)
             except Exception as e:
-                if data.get("_dev", False):
-                    logger.error("\033[31mError loading markdown file %s: %s\033[0m", file_path, str(e))
+                verbose_print("Loader", f"Error loading markdown file {file_path}: {str(e)}", Color.RED)
                 continue
         
         return data
@@ -192,6 +206,7 @@ def directory_load(
             data["_session"]["documents"] = []
 
         try:
+            verbose_print("Loader", f"Loading files from directory: {directory_path}", Color.YELLOW)
             # Create a loader for each supported extension
             # サポートされている拡張子ごとにローダーを作成
             for ext, loader_cls in {
@@ -209,21 +224,16 @@ def directory_load(
                     )
                     docs = loader.load()
                     if docs:
-                        if data.get("_dev", False):
-                            logger.debug("\033[32mLoaded %d documents with extension %s\033[0m", len(docs), ext)
                         data["_session"]["documents"].extend(docs)
+                        debug_print("Loader", f"Loaded {len(docs)} documents with extension {ext}", Color.GREEN)
                 except Exception as e:
-                    if data.get("_dev", False):
-                        logger.error("\033[31mError loading documents with extension %s: %s\033[0m", ext, str(e))
+                    verbose_print("Loader", f"Error loading documents with extension {ext}: {str(e)}", Color.RED)
                     continue
 
-            if data.get("_dev", False):
-                total_docs = len(data["_session"]["documents"])
-                logger.debug("\033[32mTotal documents loaded: %d\033[0m", total_docs)
+            debug_print("Loader", f"Total documents loaded: {len(data['_session']['documents'])}", Color.GREEN)
 
         except Exception as e:
-            if data.get("_dev", False):
-                logger.error("\033[31mError in directory_load: %s\033[0m", str(e))
+            verbose_print("Loader", f"Error in directory_load: {str(e)}", Color.RED)
             raise
 
         return data

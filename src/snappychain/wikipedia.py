@@ -1,10 +1,8 @@
 import os
 import datetime
 from typing import List, Optional
-from onelogger import Logger
+from snappychain.print import verbose_print, debug_print, Color
 import wikipedia
-
-logger = Logger.get_logger(__name__)
 
 def _format_wiki_content(content: str) -> str:
     """
@@ -127,6 +125,7 @@ def wikipedia_to_text(items: list[str], dest: str):
 
                 # Get Wikipedia page
                 # Wikipediaページを取得
+                verbose_print("Wikipedia", f"Downloading page: {item}", Color.YELLOW)
                 page = wikipedia.page(item)
                 
                 # Write page content to individual markdown file
@@ -150,16 +149,17 @@ def wikipedia_to_text(items: list[str], dest: str):
                     f.write(_format_wiki_content(page.content))
                     f.write("\n")
                 
-                logger.info("Downloaded Wikipedia page to: %s", file_path)
+                verbose_print("Wikipedia", f"Downloaded page to: {file_path}", Color.GREEN)
+                debug_print("Wikipedia", f"Page details: {len(page.content)} characters, {len(page.categories)} categories", Color.CYAN)
             
             except Exception as e:
-                logger.error("Error downloading Wikipedia page '%s': %s", item, str(e))
+                verbose_print("Wikipedia", f"Error downloading page '{item}': {str(e)}", Color.RED)
                 continue
 
-        logger.info("Completed writing all pages to %s", dest)
+        verbose_print("Wikipedia", f"Completed writing all pages to {dest}", Color.GREEN)
 
     except Exception as e:
-        logger.error("Error creating directory '%s': %s", dest, str(e))
+        verbose_print("Wikipedia", f"Error creating directory '{dest}': {str(e)}", Color.RED)
         raise
 
 

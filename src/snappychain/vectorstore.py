@@ -3,12 +3,16 @@ Vector store operations module.
 ベクトルストア操作モジュール。
 """
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from langchain.embeddings.base import Embeddings
 from langchain_community.vectorstores import FAISS, Chroma
 from langchain_core.runnables import RunnableLambda
 import os
 from onelogger import Logger
+from langchain_core.vectorstores import VectorStore
+from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
+from .print import verbose_print, debug_print, Color
 
 logger = Logger.get_logger(__name__)
 
@@ -211,3 +215,75 @@ def faiss_vectorstore(persist_dir: Optional[str] = None) -> RunnableLambda:
         return vector_store
         
     return RunnableLambda(_faiss_vectorstore)
+
+def vectorstore(
+    vectorstore: VectorStore,
+    search_type: str = "similarity",
+    search_kwargs: Optional[Dict[str, Any]] = None,
+    k: int = 4
+) -> RunnableLambda:
+    """
+    ベクトルストアを使用して類似文書を検索する
+    Search for similar documents using vector store
+
+    Args:
+        vectorstore (VectorStore): 
+            ベクトルストア / Vector store
+        search_type (str, optional): 
+            検索タイプ（"similarity" または "mmr"） / Search type ("similarity" or "mmr"). 
+            Defaults to "similarity".
+        search_kwargs (Optional[Dict[str, Any]], optional): 
+            検索時の追加パラメータ / Additional parameters for search. 
+            Defaults to None.
+        k (int, optional): 
+            取得する文書数 / Number of documents to retrieve. 
+            Defaults to 4.
+
+    Returns:
+        RunnableLambda: 検索を実行するRunnableLambda / RunnableLambda that performs the search
+    """
+    def inner(data: Dict[str, Any], *args, **kwargs) -> List[Document]:
+        # クエリを取得 / Get query
+        query = data.get("query", "")
+        if not query:
+            if isinstance(data, str):
+                query = data
+            else:
+                raise ValueError("No query found in input data")
+                
+        # verbose出力 / Verbose output
+        verbose_print("検索クエリ / Search Query", query, Color.YELLOW)
+        
+        # 検索実行 / Execute search
+        if search_type == "similarity":
+            docs = vectorstore.similarity_search(
+                query=query,
+                k=k,
+                **(search_kwargs or {})
+            )
+        elif search_type == "mmr":
+            docs = vectorstore.max_marginal_relevance_search(
+                query=query,
+                k=k,
+                **(search_kwargs or {})
+            )
+        else:
+            raise ValueError(f"Invalid search type: {search_type}")
+            
+        # verbose出力 / Verbose output
+        verbose_print("検索結果 / Search Results", 
+                     [{"content": doc.page_content, "metadata": doc.metadata} for doc in docs],
+                     Color.CYAN)
+        
+        # debug出力 / Debug output
+        debug_print("検索詳細 / Search Details", {
+            "search_type": search_type,
+            "k": k,
+            "search_kwargs": search_kwargs,
+            "query": query,
+            "results": [{"content": doc.page_content, "metadata": doc.metadata} for doc in docs]
+        })
+        
+        return docs
+    
+    return RunnableLambda(inner)

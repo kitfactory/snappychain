@@ -15,6 +15,9 @@ from snappychain.prompt import system_prompt, human_prompt
 from snappychain.schema import schema
 from snappychain.chat import openai_chat
 from snappychain.output import output
+from langchain_core.runnables import RunnableLambda
+from langchain_core.callbacks import CallbackManagerForChainRun
+from .print import verbose_print, debug_print, Color
 
 logger = Logger.get_logger(__name__)
 
@@ -259,3 +262,78 @@ def build_reranker(config: Dict[str, Any]) -> UnifiedRerank:
     except Exception as e:
         logger.error("\033[31mError building reranker: %s\033[0m", str(e))
         raise 
+
+def rerank(
+    reranker: Any,
+    top_n: int = 4,
+    score_threshold: Optional[float] = None
+) -> RunnableLambda:
+    """
+    文書を再ランク付けする
+    Rerank documents
+
+    Args:
+        reranker (Any): 
+            再ランク付けを行うモデル / Model for reranking
+        top_n (int, optional): 
+            上位何件を返すか / Number of top documents to return. 
+            Defaults to 4.
+        score_threshold (Optional[float], optional): 
+            スコアの閾値 / Score threshold. 
+            Defaults to None.
+
+    Returns:
+        RunnableLambda: 再ランク付けを実行するRunnableLambda / RunnableLambda that performs reranking
+    """
+    def inner(data: Union[List[Document], Dict[str, Any]], *args, **kwargs) -> List[Document]:
+        # 入力データを処理 / Process input data
+        if isinstance(data, dict):
+            if "documents" in data:
+                documents = data["documents"]
+            else:
+                documents = data.get("context", [])
+        else:
+            documents = data
+            
+        if not documents:
+            return []
+            
+        # クエリを取得 / Get query
+        query = ""
+        if isinstance(data, dict):
+            query = data.get("query", "")
+            
+        # verbose出力 / Verbose output
+        verbose_print("再ランク付け入力 / Reranking Input", {
+            "query": query,
+            "documents": [{"content": doc.page_content, "metadata": doc.metadata} for doc in documents]
+        }, Color.YELLOW)
+        
+        # 再ランク付けを実行 / Execute reranking
+        reranked_documents = reranker.rerank(
+            query=query,
+            documents=documents,
+            top_n=top_n,
+            score_threshold=score_threshold
+        )
+        
+        # verbose出力 / Verbose output
+        verbose_print("再ランク付け結果 / Reranking Results", 
+                     [{"content": doc.page_content, "metadata": doc.metadata, "score": doc.metadata.get("score")} 
+                      for doc in reranked_documents],
+                     Color.MAGENTA)
+        
+        # debug出力 / Debug output
+        debug_print("再ランク付け詳細 / Reranking Details", {
+            "query": query,
+            "top_n": top_n,
+            "score_threshold": score_threshold,
+            "input_docs": len(documents),
+            "output_docs": len(reranked_documents),
+            "results": [{"content": doc.page_content, "metadata": doc.metadata, "score": doc.metadata.get("score")} 
+                       for doc in reranked_documents]
+        })
+        
+        return reranked_documents
+    
+    return RunnableLambda(inner) 

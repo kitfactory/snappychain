@@ -20,7 +20,7 @@ from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS, Chroma
 from langchain_ollama import ChatOllama
 from langchain.chains import RetrievalQA
-from onelogger import Logger
+from snappychain.print import verbose_print, debug_print, Color
 
 from snappychain.bm25sj import BM25SJRetriever
 
@@ -115,6 +115,7 @@ class Rag:
         # Initialize embeddings
         # 埋め込みの初期化
         try:
+            verbose_print("RAG", "Initializing embeddings...", Color.YELLOW)
             if self.config.get("embeddings"):
                 if self.config["embeddings"]["provider"] == "openai":
                     self.embeddings = OpenAIEmbeddings(
@@ -126,13 +127,15 @@ class Rag:
                     )
                 else:
                     raise ValueError(f"Unsupported embeddings provider: {self.config['embeddings']['provider']}")
+                debug_print("RAG", f"Initialized {self.config['embeddings']['provider']} embeddings with model {self.config['embeddings']['model']}", Color.GREEN)
         except Exception as e:
-            logger.error("\033[31mError initializing embeddings: %s\033[0m", str(e))
+            verbose_print("RAG", f"Error initializing embeddings: {str(e)}", Color.RED)
             raise
 
         # Initialize LLM
         # LLMの初期化
         try:
+            verbose_print("RAG", "Initializing LLM...", Color.YELLOW)
             if self.config["llm"]["provider"] == "openai":
                 self.llm = ChatOpenAI(
                     model=self.config["llm"]["model"],
@@ -145,14 +148,16 @@ class Rag:
                 )
             else:
                 raise ValueError(f"Unsupported LLM provider: {self.config['llm']['provider']}")
+            debug_print("RAG", f"Initialized {self.config['llm']['provider']} LLM with model {self.config['llm']['model']}", Color.GREEN)
         except Exception as e:
-            logger.error("\033[31mError initializing LLM: %s\033[0m", str(e))
+            verbose_print("RAG", f"Error initializing LLM: {str(e)}", Color.RED)
             raise
 
         # Initialize vector store if specified
         # ベクトルストアが指定されている場合は初期化
         try:
             if self.config.get("vector_store"):
+                verbose_print("RAG", "Initializing vector store...", Color.YELLOW)
                 if not self.embeddings:
                     raise ValueError("Embeddings must be initialized before vector store")
 
@@ -167,13 +172,15 @@ class Rag:
                             embeddings=self.embeddings,
                             allow_dangerous_deserialization=True
                         )
+                        debug_print("RAG", f"Loaded existing FAISS index from {persist_dir}", Color.GREEN)
                     else:
-                        logger.info("Initializing vector store with empty documents list")
+                        verbose_print("RAG", "Initializing vector store with empty documents list", Color.YELLOW)
                         # Initialize with empty documents list
                         self.vector_store = FAISS.from_texts(texts=["dummy text"], embedding=self.embeddings)
                         if persist_dir:
                             os.makedirs(persist_dir, exist_ok=True)
                             self.vector_store.save_local(persist_dir)
+                            debug_print("RAG", f"Created new FAISS index in {persist_dir}", Color.GREEN)
 
                 elif self.config["vector_store"]["provider"].upper() == "CHROMA":
                     if persist_dir:
@@ -182,23 +189,27 @@ class Rag:
                             persist_directory=persist_dir,
                             embedding_function=self.embeddings
                         )
+                        debug_print("RAG", f"Initialized Chroma with persist directory {persist_dir}", Color.GREEN)
                     else:
                         self.vector_store = Chroma(
                             embedding_function=self.embeddings
                         )
+                        debug_print("RAG", "Initialized in-memory Chroma instance", Color.GREEN)
                 else:
                     raise ValueError(f"Unsupported vector store provider: {self.config['vector_store']['provider']}")
 
         except Exception as e:
-            logger.error("\033[31mError initializing vector store: %s\033[0m", str(e))
+            verbose_print("RAG", f"Error initializing vector store: {str(e)}", Color.RED)
             raise
 
         # Initialize retrievers
         # リトリーバーの初期化
         try:
+            verbose_print("RAG", "Initializing retrievers...", Color.YELLOW)
             # Add vector store retriever if available
             if self.vector_store:
                 self.retrievers.append(self.vector_store.as_retriever())
+                debug_print("RAG", "Added vector store retriever", Color.GREEN)
             
             # Add other retrievers from config
             if self.config.get("retrievers"):
@@ -211,19 +222,21 @@ class Rag:
                             save_dir=retriever_config["settings"].get("save_dir")
                         )
                         self.retrievers.append(bm25_retriever)
+                        debug_print("RAG", "Added BM25SJ retriever", Color.GREEN)
                     # Add more retriever types as needed
             
             if not self.retrievers:
-                logger.warning("No retrievers configured. RAG will not be able to retrieve documents.")
+                verbose_print("RAG", "No retrievers configured. RAG will not be able to retrieve documents.", Color.YELLOW)
         
         except Exception as e:
-            logger.error("\033[31mError initializing retrievers: %s\033[0m", str(e))
+            verbose_print("RAG", f"Error initializing retrievers: {str(e)}", Color.RED)
             raise
 
         # Initialize reranker if specified
         # リランカーが指定されている場合は初期化
         try:
             if self.config.get("reranker"):
+                verbose_print("RAG", "Initializing reranker...", Color.YELLOW)
                 if self.config["reranker"]["provider"] == "llm":
                     # Create LLM-based reranker
                     rerank_llm = None
@@ -241,80 +254,18 @@ class Rag:
                                 model=self.config["reranker"]["model"]
                             )
                         else:
-                            logger.warning(f"未サポートのLLMプロバイダー: {llm_provider}、デフォルトのLLMを使用します")
+                            verbose_print("RAG", f"Unsupported LLM provider: {llm_provider}, using default LLM", Color.YELLOW)
                             rerank_llm = self.llm
                     else:
                         # Use the same LLM as for the RAG
                         rerank_llm = self.llm
                     
                     if rerank_llm:
-                        # Create the reranker function
-                        rerank_prompt = ChatPromptTemplate.from_template("""
-                        あなたはドキュメント再ランク付け専門のAIです。与えられたクエリに最も関連するドキュメントを選択してください。
+                        debug_print("RAG", "Initialized reranker with LLM", Color.GREEN)
                         
-                        クエリ: {query}
-                        
-                        以下のドキュメントを評価し、クエリへの関連性をスコア付けしてください（0-10のスケール、10が最も関連性が高い）:
-                        
-                        {documents}
-                        
-                        各ドキュメントのIDと評価スコアを、スコアの降順に次の形式で返してください:
-                        doc_id1: score1
-                        doc_id2: score2
-                        ...
-                        """)
-                        
-                        def rerank_documents(query: str, docs: List[Document]) -> List[Document]:
-                            if not docs:
-                                return []
-                            
-                            docs_text = "\n\n".join([f"ID: {i}\n内容: {doc.page_content}" for i, doc in enumerate(docs)])
-                            
-                            try:
-                                chain = rerank_prompt | rerank_llm | StrOutputParser()
-                                result = chain.invoke({"query": query, "documents": docs_text})
-                                
-                                # Parse results
-                                reranked_ids = []
-                                for line in result.strip().split("\n"):
-                                    if ":" in line:
-                                        parts = line.split(":")
-                                        if len(parts) >= 2:
-                                            doc_id = parts[0].strip()
-                                            if doc_id.startswith("ID"):
-                                                doc_id = doc_id[2:].strip()
-                                            try:
-                                                doc_index = int(doc_id)
-                                                reranked_ids.append(doc_index)
-                                            except ValueError:
-                                                continue
-                                
-                                # Reorder documents based on reranked IDs
-                                reranked_docs = []
-                                used_indices = set()
-                                
-                                # First add documents in the order specified by reranking
-                                for idx in reranked_ids:
-                                    if 0 <= idx < len(docs) and idx not in used_indices:
-                                        reranked_docs.append(docs[idx])
-                                        used_indices.add(idx)
-                                
-                                # Then add any remaining documents not included in the reranking
-                                for idx, doc in enumerate(docs):
-                                    if idx not in used_indices:
-                                        reranked_docs.append(doc)
-                                
-                                return reranked_docs
-                            
-                            except Exception as e:
-                                logger.error(f"Error during document reranking: {str(e)}")
-                                return docs  # Return original docs if reranking fails
-                        
-                        self.reranker = rerank_documents
-        
         except Exception as e:
-            logger.error("\033[31mError initializing reranker: %s\033[0m", str(e))
-            # Continue without reranker
+            verbose_print("RAG", f"Error initializing reranker: {str(e)}", Color.RED)
+            raise
 
     def add_documents(self, documents: List[Document]) -> 'Rag':
         """

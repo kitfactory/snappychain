@@ -1,3 +1,8 @@
+"""
+出力パーサーを提供するモジュール
+Module providing output parsers
+"""
+
 from langchain_core.output_parsers.string import StrOutputParser
 from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_core.output_parsers.list import MarkdownListOutputParser, NumberedListOutputParser
@@ -11,28 +16,36 @@ registry = ComponentRegistry()
 
 def output(type: str = "text") -> RunnableLambda:
     """
-    Converts the string in the 'response' field of the input dictionary to a parsed output  
-    and stores it using the key 'output'. Depending on the as_session flag, either the original  
-    data dictionary (with the new 'output' key) or just the parsed output is returned.  
-    入力辞書の 'response' キーにある文字列を解析し、その結果を 'output' キーに格納します。  
-    as_session フラグにより、解析後の 'output' キーを含む元の辞書全体を返すか、  
-    解析済みの応答のみを返すかが決まります。  
+    OutputParserを使用して応答を解析し、解析された値を直接返却します。
+    Parse the response using OutputParser and return the parsed value directly.
 
-    The 'type' parameter supports the following formats:  
-    type には以下の型を指定できます:  
-    - text  
-    - json  
-    - markdown  
-    - html  
-    - latex  
-    - python  
+    Args:
+        type (str, optional): 
+            出力形式を指定します。デフォルトは"text"です。
+            Specify the output format. Defaults to "text".
+            
+            利用可能な形式 / Available formats:
+            - text: テキスト形式 / Text format
+            - json: JSON形式 / JSON format
+            - markdown: Markdown形式 / Markdown format
+            - numbered: 番号付きリスト形式 / Numbered list format
 
-    Arguments:  
-        response (str): The original response string contained in the input dictionary.  
-                        入力辞書に格納された元の応答文字列。  
-        as_session (bool): Flag indicating whether to return the entire data dictionary  
-                           (including the parsed output under 'output') or just the parsed output.  
-                           True の場合、データ全体を返し、それ以外の場合は解析済み応答のみを返します。  
+    Returns:
+        RunnableLambda: 解析された値を返すRunnableLambda
+                       RunnableLambda that returns the parsed value
+
+    Examples:
+        >>> from langchain_core.prompts import ChatPromptTemplate
+        >>> from langchain_openai import ChatOpenAI
+        >>> 
+        >>> # チェインを作成 / Create chain
+        >>> model = ChatOpenAI()
+        >>> prompt = ChatPromptTemplate.from_template("数字を3つ挙げてください / List three numbers")
+        >>> chain = prompt | model | output("numbered")
+        >>> 
+        >>> # 実行 / Execute
+        >>> result = chain.invoke({})
+        >>> print(result)  # [1, 2, 3]
     """
     # レジストリからパーサーを取得または作成
     # Get or create parser from registry
@@ -48,22 +61,26 @@ def output(type: str = "text") -> RunnableLambda:
             parser = MarkdownListOutputParser()
         elif type == 'numbered':
             parser = NumberedListOutputParser()
-        # elif type == "html":
-        #     parser = HtmlOutputParser()
-        # elif type == "latex":
-        #     parser = LatexOutputParser()
-        # elif type == "python":
-        #     parser = PythonOutputParser()
         else:
-            raise ValueError(f"Invalid output type: {type}")  # Raise error for unsupported type | サポートされていない型の場合に例外を送出する
+            raise ValueError(f"Invalid output type: {type}")  # サポートされていない型の場合に例外を送出する / Raise error for unsupported type
         
         # 作成したパーサーをレジストリに保存
         # Save created parser to registry
         registry.set_object(parser_key, parser)
 
-    # Inner function to parse the 'response' field and update the data dictionary with the parsed output.  
-    # 応答辞書の 'response' キーの文字列を解析し、その結果を 'output' キーに格納する内部関数。
-    def inner(data, *args, **kwargs):
+    def inner(data: dict, *args, **kwargs):
+        """
+        入力データから応答を取得し、パースして返却する内部関数
+        Inner function to get response from input data, parse it and return
+        
+        Args:
+            data (dict): 入力データ / Input data
+            *args: 可変長位置引数 / Variable length positional arguments
+            **kwargs: キーワード引数 / Keyword arguments
+            
+        Returns:
+            Any: パースされた値 / Parsed value
+        """
         # セッションを初期化
         # Initialize session
         if "_session" not in data:
@@ -97,7 +114,15 @@ def output(type: str = "text") -> RunnableLambda:
         
         # 通常の応答処理
         # Normal response processing
-        response = session["response"]
+        if isinstance(data, dict) and "_session" in data and "response" in data["_session"]:
+            response = data["_session"]["response"]
+        elif hasattr(data, "content"):
+            response = data.content
+        else:
+            response = str(data)
+            
+        # 応答をパースして返却
+        # Parse response and return
         parsed_response = parser.invoke(response)
         if kwargs.get("verbose") == True or session.get("kwargs", {}).get("verbose") == True:
             verbose_print("出力 / Output", f"{parsed_response}", Color.YELLOW)

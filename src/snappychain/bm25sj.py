@@ -6,15 +6,13 @@ from typing import Dict, List, Any, Optional, Tuple, ClassVar
 from langchain_core.runnables import RunnableLambda
 from langchain_core.retrievers import BaseRetriever
 from langchain.schema import Document
-from onelogger import Logger
+from snappychain.print import verbose_print, debug_print, Color
 import re
 import pickle
 import os
 import numpy as np
 import bm25s
 from pydantic import Field, PrivateAttr
-
-logger = Logger.get_logger(__name__)
 
 class BM25SJRetriever(BaseRetriever):
     """
@@ -110,7 +108,7 @@ class BM25SJRetriever(BaseRetriever):
         # トークン化したコーパスをインデックス化
         self._retriever.index(corpus_tokens)
         
-        logger.info(f"Added {len(documents)} documents to BM25SJ retriever, total {len(self._corpus_texts)}")
+        verbose_print("BM25SJ", f"Added {len(documents)} documents to BM25SJ retriever, total {len(self._corpus_texts)}", Color.GREEN)
     
     def get_relevant_documents(self, query: str) -> List[Document]:
         """
@@ -126,12 +124,13 @@ class BM25SJRetriever(BaseRetriever):
                           関連ドキュメントのリスト。
         """
         if not self._corpus_texts:
-            logger.warning("No documents have been added to the retriever")
+            verbose_print("BM25SJ", "No documents have been added to the retriever", Color.YELLOW)
             return []
         
         try:
             # Tokenize query using bm25s tokenizer
             # bm25sトークナイザーを使用してクエリをトークン化
+            verbose_print("BM25SJ", f"Processing query: {query}", Color.YELLOW)
             query_tokens = bm25s.tokenize(query, stopwords="japanese")
             
             # Retrieve documents and scores
@@ -157,7 +156,7 @@ class BM25SJRetriever(BaseRetriever):
                     try:
                         doc_idx = int(doc_idx)
                     except (ValueError, TypeError):
-                        logger.warning(f"Invalid document index type: {type(doc_idx)}")
+                        verbose_print("BM25SJ", f"Invalid document index type: {type(doc_idx)}", Color.RED)
                         continue
                 
                 if doc_idx in self._original_docs:
@@ -169,17 +168,17 @@ class BM25SJRetriever(BaseRetriever):
                     # Add score to metadata
                     doc.metadata["score"] = float(scores[i])
                     result_docs.append(doc)
-                    logger.debug(f"Retrieved document {doc_idx} with score {scores[i]}")
+                    debug_print("BM25SJ", f"Retrieved document {doc_idx} with score {scores[i]}", Color.CYAN)
                 else:
-                    logger.warning(f"Document index {doc_idx} not found in original documents (max index: {max(self._original_docs.keys()) if self._original_docs else -1})")
+                    verbose_print("BM25SJ", f"Document index {doc_idx} not found in original documents (max index: {max(self._original_docs.keys()) if self._original_docs else -1})", Color.RED)
             
-            logger.debug(f"Retrieved {len(result_docs)} documents for query: {query}")
+            debug_print("BM25SJ", f"Retrieved {len(result_docs)} documents for query: {query}", Color.GREEN)
             return result_docs
             
         except Exception as e:
-            logger.error(f"Error retrieving documents: {e}")
+            verbose_print("BM25SJ", f"Error retrieving documents: {e}", Color.RED)
             import traceback
-            logger.debug(traceback.format_exc())
+            debug_print("BM25SJ", traceback.format_exc(), Color.RED)
             return []
     
     def save(self, file_path: str) -> None:
@@ -202,7 +201,7 @@ class BM25SJRetriever(BaseRetriever):
         with open(file_path, 'wb') as f:
             pickle.dump(data, f)
         
-        logger.info(f"Saved BM25SJ retriever to {file_path}")
+        verbose_print("BM25SJ", f"Saved BM25SJ retriever to {file_path}", Color.GREEN)
     
     @classmethod
     def load(cls, file_path: str) -> 'BM25SJRetriever':
@@ -240,7 +239,7 @@ class BM25SJRetriever(BaseRetriever):
             corpus_tokens = bm25s.tokenize(retriever._corpus_texts, stopwords="japanese")
             retriever._retriever.index(corpus_tokens)
         
-        logger.info(f"Loaded BM25SJ retriever from {file_path}")
+        verbose_print("BM25SJ", f"Loaded BM25SJ retriever from {file_path}", Color.GREEN)
         return retriever
     
     @classmethod
@@ -293,7 +292,7 @@ def bm25sj(k: int = 4) -> RunnableLambda:
         documents = session.get("documents", [])
         
         if not documents:
-            logger.warning("No documents found in session to create BM25SJ retriever")
+            verbose_print("BM25SJ", "No documents found in session to create BM25SJ retriever", Color.YELLOW)
             return data
         
         # Create BM25SJ retriever
@@ -305,7 +304,7 @@ def bm25sj(k: int = 4) -> RunnableLambda:
         session["retriever"] = retriever
         session["retriever_type"] = "bm25sj"
         
-        logger.info(f"Created BM25SJ retriever with {len(documents)} documents")
+        verbose_print("BM25SJ", f"Created BM25SJ retriever with {len(documents)} documents", Color.GREEN)
         return data
     
     return RunnableLambda(inner)
@@ -334,11 +333,11 @@ def bm25sj_query(query: str, k: int = None) -> RunnableLambda:
         retriever = session.get("retriever")
         
         if not retriever:
-            logger.warning("No retriever found in session. Create one with bm25sj() first.")
+            verbose_print("BM25SJ", "No retriever found in session. Create one with bm25sj() first.", Color.YELLOW)
             return data
         
         if session.get("retriever_type") != "bm25sj":
-            logger.warning(f"Retriever in session is not BM25SJ but {session.get('retriever_type')}")
+            verbose_print("BM25SJ", f"Retriever in session is not BM25SJ but {session.get('retriever_type')}", Color.YELLOW)
             return data
         
         # If k is specified, temporarily override the retriever's default k
@@ -358,7 +357,7 @@ def bm25sj_query(query: str, k: int = None) -> RunnableLambda:
         # セッションに保存
         session["similar_documents"] = relevant_docs
         
-        logger.info(f"Retrieved {len(relevant_docs)} documents for query: {query}")
+        verbose_print("BM25SJ", f"Retrieved {len(relevant_docs)} documents for query: {query}", Color.GREEN)
         return data
     
     return RunnableLambda(inner) 
